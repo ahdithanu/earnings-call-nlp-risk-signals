@@ -96,18 +96,6 @@ MIT License
 [LinkedIn](https://linkedin.com/in/ahdithan) · [GitHub](https://github.com/ahdithanu)
 ```
 
----
-
-**Changes made:**
-- Removed all Northwestern/MSDS references
-- Added "Why This Matters" with business applications
-- Added "Applications" section showing real-world use cases
-- Added "Roadmap" to signal this is ongoing work, not a finished assignment
-- Reframed as "framework" not "project"
-- Citation section removed entirely
-- Positioning: builder creating a tool, not student submitting homework
-
----
 
 **Also update the GitHub description field to:**
 ```
