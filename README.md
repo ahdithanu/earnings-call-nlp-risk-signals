@@ -18,6 +18,10 @@ Tested on 2,773 company-quarters across 72 large-cap tech companies:
 
 Full output: [`results/uncertainty_growth_analysis.txt`](results/uncertainty_growth_analysis.txt) and [`results/per_ticker_correlations.csv`](results/per_ticker_correlations.csv).
 
+## Forward-Looking Signals
+
+`scripts/latest_signals.py` turns the panel finding into a monitoring view: each ticker's most recent call is z-scored against that company's *prior* calls only (strictly out-of-sample), producing a watchlist of names whose executives are hedging unusually hard right now — [`results/latest_uncertainty_signals.csv`](results/latest_uncertainty_signals.csv). The report is only as fresh as the dataset (currently through 2025Q1); a `quarters_behind` column flags stale tickers.
+
 ## Methodology
 
 1. **Data:** [glopardo/sp500-earnings-transcripts](https://huggingface.co/datasets/glopardo/sp500-earnings-transcripts) — 20,681 S&P 500 earnings-call transcripts with quarter keys, GICS sector, and trailing/forward 12-month EPS. Filtered to GICS Information Technology plus GOOGL, META, and AMZN, which GICS files under other sectors (72 tickers, 3,025 usable company-quarters; GOOG dropped as a duplicate share class of the same calls).
@@ -33,11 +37,13 @@ Full output: [`results/uncertainty_growth_analysis.txt`](results/uncertainty_gro
 │   └── tech_uncertainty_features.parquet   # 3,025 rows × 29 cols: ids + metrics, no transcript text
 ├── results/
 │   ├── uncertainty_growth_analysis.txt     # headline analysis output
-│   └── per_ticker_correlations.csv         # all 71 per-ticker correlations
+│   ├── per_ticker_correlations.csv         # all 71 per-ticker correlations
+│   └── latest_uncertainty_signals.csv      # latest call per ticker, scored vs own history
 ├── scripts/
 │   ├── inspect_dataset.py                  # Step 1: schema inspection (run before mapping fields)
 │   ├── build_features.py                   # Steps 2–6: dataset → feature parquet
-│   └── analyze_uncertainty_growth.py       # panel analysis
+│   ├── analyze_uncertainty_growth.py       # panel analysis
+│   └── latest_signals.py                   # forward-looking monitoring report
 ├── src/
 │   ├── lexicon.py                          # LM lexicon loader (refuses truncated lists)
 │   ├── uncertainty.py                      # tokenizer + negation-aware uncertainty counting
@@ -55,6 +61,7 @@ pip install -r requirements.txt
 python -m pytest tests/            # 19 tests
 python -m scripts.build_features   # rebuilds the parquet (downloads dataset on first run)
 python -m scripts.analyze_uncertainty_growth
+python -m scripts.latest_signals   # score each ticker's most recent call
 ```
 
 Score any text directly:
