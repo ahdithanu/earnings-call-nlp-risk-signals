@@ -12,3 +12,10 @@ TECH_TICKERS = frozenset(
         "IBM", "MU",
     }
 )
+
+# Companies the project treats as tech even though GICS files them under
+# Communication Services (GOOGL, META) or Consumer Discretionary (AMZN).
+# Unioned with the sector filter in scripts/build_features.py. GOOG is
+# deliberately absent: the dataset carries Alphabet's calls under both share
+# classes, and including both would double-count the same transcripts.
+EXTRA_TECH_TICKERS = frozenset({"GOOGL", "META", "AMZN"})

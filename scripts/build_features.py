@@ -5,10 +5,11 @@ scripts/inspect_dataset.py — 20,681 rows, one `train` split):
 
   Step 2  Filter to the tech universe. The dataset HAS a GICS sector field,
           so the preferred path applies: sector == "Information Technology"
-          (2,919 rows, 69 tickers, 2013-2025). The hardcoded ticker list in
-          src/universe.py stays a fallback only. Note that under GICS this
-          excludes GOOGL/META (Communication Services) and AMZN (Consumer
-          Discretionary).
+          (2,919 rows, 69 tickers, 2013-2025), unioned with
+          EXTRA_TECH_TICKERS (GOOGL, META, AMZN — mega-caps GICS files
+          under other sectors; GOOG excluded as a duplicate share class).
+          The hardcoded TECH_TICKERS list in src/universe.py stays a
+          fallback only.
   Step 3  Isolate the Q&A section of each transcript (src/qa_extract.py).
           ~96% of tech transcripts split cleanly; the rest keep only
           full-transcript metrics and qa_isolated=False.
@@ -41,6 +42,7 @@ from src.features import add_next_quarter_eps
 from src.lexicon import load_uncertainty_terms
 from src.qa_extract import extract_qa
 from src.uncertainty import count_uncertainty
+from src.universe import EXTRA_TECH_TICKERS
 
 DATASET = "glopardo/sp500-earnings-transcripts"
 TECH_SECTOR = "Information Technology"
@@ -77,8 +79,11 @@ def main() -> None:
     lexicon = load_uncertainty_terms()
     df = load_dataset(DATASET)["train"].to_pandas()
 
-    # Step 2: tech filter + panel-key hygiene.
-    df = df[df["sector"] == TECH_SECTOR].copy()
+    # Step 2: tech filter + panel-key hygiene. GICS Information Technology
+    # plus the mega-caps GICS files elsewhere (GOOGL, META, AMZN).
+    df = df[
+        (df["sector"] == TECH_SECTOR) | df["ticker"].isin(EXTRA_TECH_TICKERS)
+    ].copy()
     n_tech = len(df)
     df = df.dropna(subset=["year", "quarter"])
     print(f"tech rows: {n_tech} ({n_tech - len(df)} dropped for missing year/quarter)")

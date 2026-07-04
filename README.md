@@ -10,17 +10,17 @@ Earnings calls contain signals beyond the numbers. Executives hedge when they're
 
 ## Key Finding
 
-Tested on 2,657 company-quarters across 69 large-cap tech companies:
+Tested on 2,773 company-quarters across 72 large-cap tech companies:
 
-- **Elevated hedging is a real, but modest, bearish signal.** When a company's Q&A uncertainty density rises one standard deviation above its own norm, next-quarter trailing-12M EPS growth comes in about **0.9 percentage points lower** (t = −3.10, ticker fixed effects, ticker-clustered SEs). The effect survives quarter fixed effects (−0.65pp, t = −2.45), so it is not just market-wide bad times.
-- **It is weakly predictive, not merely reactive.** Density correlates slightly more with growth into the *next* quarter (r = −0.059) than with growth into the quarter being discussed (r = −0.049).
-- **Per-company correlations are noise.** Across 68 tickers, individual density-growth correlations center near zero and only 3 clear p < 0.05 — chance level. An earlier version of this project reported strong per-company correlations (NVDA +0.96, MSFT −0.58) from ~3 quarters of data; on 40+ quarters per company those numbers do not replicate. Small samples tell vivid stories; panels tell true ones.
+- **Elevated hedging is a real, but modest, bearish signal.** When a company's Q&A uncertainty density rises one standard deviation above its own norm, next-quarter trailing-12M EPS growth comes in about **0.9 percentage points lower** (t = −3.13, ticker fixed effects, ticker-clustered SEs). The effect survives quarter fixed effects (−0.64pp, t = −2.41), so it is not just market-wide bad times.
+- **It is weakly predictive, not merely reactive.** Density correlates slightly more with growth into the *next* quarter (r = −0.056) than with growth into the quarter being discussed (r = −0.047).
+- **Per-company correlations are noise.** Across 71 tickers, individual density-growth correlations center near zero and only 3 clear p < 0.05 — chance level. An earlier version of this project reported strong per-company correlations (NVDA +0.96, MSFT −0.58) from ~3 quarters of data; on 40+ quarters per company those numbers do not replicate. Small samples tell vivid stories; panels tell true ones.
 
 Full output: [`results/uncertainty_growth_analysis.txt`](results/uncertainty_growth_analysis.txt) and [`results/per_ticker_correlations.csv`](results/per_ticker_correlations.csv).
 
 ## Methodology
 
-1. **Data:** [glopardo/sp500-earnings-transcripts](https://huggingface.co/datasets/glopardo/sp500-earnings-transcripts) — 20,681 S&P 500 earnings-call transcripts with quarter keys, GICS sector, and trailing/forward 12-month EPS. Filtered to GICS Information Technology (69 tickers, 2,895 usable company-quarters).
+1. **Data:** [glopardo/sp500-earnings-transcripts](https://huggingface.co/datasets/glopardo/sp500-earnings-transcripts) — 20,681 S&P 500 earnings-call transcripts with quarter keys, GICS sector, and trailing/forward 12-month EPS. Filtered to GICS Information Technology plus GOOGL, META, and AMZN, which GICS files under other sectors (72 tickers, 3,025 usable company-quarters; GOOG dropped as a duplicate share class of the same calls).
 2. **Q&A isolation:** transcripts are a single speaker-prefixed string, so the Q&A boundary is found by position-aware markers (explicit "Question-and-Answer Session" header, falling back to the operator's first-question handoff; intro announcements are ignored). 96% of transcripts split cleanly; the rest are flagged rather than silently mis-scored.
 3. **Uncertainty scoring:** negation-aware matching against the full 297-term Loughran-McDonald uncertainty category — "no material risk" does not count as risk. Density = uncertainty terms per 100 tokens, computed separately for the full call and the Q&A section.
 4. **Outcome variable:** next-quarter trailing-12M EPS growth, with a calendar-gap guard so a missing quarter yields NaN instead of a fabricated "next quarter."
@@ -30,10 +30,10 @@ Full output: [`results/uncertainty_growth_analysis.txt`](results/uncertainty_gro
 
 ```
 ├── data/processed/
-│   └── tech_uncertainty_features.parquet   # 2,895 rows × 29 cols: ids + metrics, no transcript text
+│   └── tech_uncertainty_features.parquet   # 3,025 rows × 29 cols: ids + metrics, no transcript text
 ├── results/
 │   ├── uncertainty_growth_analysis.txt     # headline analysis output
-│   └── per_ticker_correlations.csv         # all 68 per-ticker correlations
+│   └── per_ticker_correlations.csv         # all 71 per-ticker correlations
 ├── scripts/
 │   ├── inspect_dataset.py                  # Step 1: schema inspection (run before mapping fields)
 │   ├── build_features.py                   # Steps 2–6: dataset → feature parquet
@@ -43,7 +43,7 @@ Full output: [`results/uncertainty_growth_analysis.txt`](results/uncertainty_gro
 │   ├── uncertainty.py                      # tokenizer + negation-aware uncertainty counting
 │   ├── qa_extract.py                       # Q&A boundary detection
 │   ├── features.py                         # forward EPS shift with quarter-gap guard
-│   └── universe.py                         # hardcoded tech-ticker fallback (unused; dataset has a sector field)
+│   └── universe.py                         # EXTRA_TECH_TICKERS union (GOOGL/META/AMZN) + fallback list
 ├── tests/                                  # 19 unit tests
 └── lm_uncertainty_terms.txt                # full 297-term LM uncertainty category
 ```
@@ -78,7 +78,6 @@ print(result.uncertainty_count, result.negation_excluded, result.density)
 
 ## Roadmap
 
-- [ ] Expand beyond GICS Information Technology (GOOGL/META/AMZN sit in other sectors)
 - [ ] Recover the ~4% of transcripts where Q&A isolation fails
 - [ ] Additional L-M categories (litigious, negative, constraining) as parallel features
 - [ ] Price-based outcomes (post-call drift) alongside EPS growth
