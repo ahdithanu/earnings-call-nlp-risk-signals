@@ -1,0 +1,27 @@
+=== sample ===
+rows: 2773 of 3025 (qa_isolated, total_tokens_qa>=500, growth outcome present)
+tickers: 72, years 2013-2024
+growth winsorized at [-53.1%, 98.3%]
+
+=== per-ticker correlations (density_qa vs next-quarter TTM EPS growth) ===
+tickers with >= 12 usable quarters: 71
+pearson r:  mean -0.063, median -0.069, positive 25/71
+spearman:   mean -0.068, median -0.071, positive 25/71
+significant at p<0.05 (pearson): 3/71 (~3.6 expected by chance)
+
+README focus tickers (README claimed NVDA r=+0.959, MSFT r=-0.584 on ~3 quarters):
+ticker  n_quarters  pearson_r  pearson_p  spearman_rho  spearman_p  mean_growth  median_growth
+  MSFT          42     +0.115     +0.469        -0.031      +0.846       +3.621         +3.852
+  NVDA          43     -0.216     +0.165        -0.276      +0.073      +13.530        +13.362
+
+=== growth-context test ===
+spearman(per-ticker median growth, per-ticker pearson r) = -0.054 (p=0.652)
+high-growth half: mean r -0.080 | mature half: mean r -0.046
+
+=== panel regression: growth_w ~ density_z + FE, SE clustered by ticker ===
+ticker FE: coef on density_z = -0.892 pp per 1 SD (t=-3.13, p=0.002, n=2773)
+ticker + quarter FE: coef on density_z = -0.644 pp per 1 SD (t=-2.41, p=0.016, n=2773)
+
+=== lead-lag (within-ticker density_z) ===
+growth into current quarter (reactive): r = -0.047 (p=0.014, n=2701)
+growth into next quarter (predictive): r = -0.056 (p=0.003, n=2773)
