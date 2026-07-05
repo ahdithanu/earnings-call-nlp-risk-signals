@@ -22,6 +22,8 @@ Full output: [`results/uncertainty_growth_analysis.txt`](results/uncertainty_gro
 
 `scripts/latest_signals.py` turns the panel finding into a monitoring view: each ticker's most recent call is z-scored against that company's *prior* calls only (strictly out-of-sample), producing a watchlist of names whose executives are hedging unusually hard right now — [`results/latest_uncertainty_signals.csv`](results/latest_uncertainty_signals.csv). The report is only as fresh as the dataset (currently through 2025Q1); a `quarters_behind` column flags stale tickers.
 
+**Explore it:** `web/` is a static, self-contained explorer — per-company density-vs-growth charts for all 72 tickers with the panel result up top. Serve it with `python -m http.server -d web` (or GitHub Pages); data is precomputed by `scripts/export_web_data.py`, nothing is fetched live.
+
 ## Methodology
 
 1. **Data:** [glopardo/sp500-earnings-transcripts](https://huggingface.co/datasets/glopardo/sp500-earnings-transcripts) — 20,681 S&P 500 earnings-call transcripts with quarter keys, GICS sector, and trailing/forward 12-month EPS. Filtered to GICS Information Technology plus GOOGL, META, and AMZN, which GICS files under other sectors (72 tickers, 3,025 usable company-quarters; GOOG dropped as a duplicate share class of the same calls).
@@ -43,7 +45,9 @@ Full output: [`results/uncertainty_growth_analysis.txt`](results/uncertainty_gro
 │   ├── inspect_dataset.py                  # Step 1: schema inspection (run before mapping fields)
 │   ├── build_features.py                   # Steps 2–6: dataset → feature parquet
 │   ├── analyze_uncertainty_growth.py       # panel analysis
-│   └── latest_signals.py                   # forward-looking monitoring report
+│   ├── latest_signals.py                   # forward-looking monitoring report
+│   └── export_web_data.py                  # regenerates web/data.js from the parquet
+├── web/                                    # static Uncertainty Explorer (index.html + generated data.js)
 ├── src/
 │   ├── lexicon.py                          # LM lexicon loader (refuses truncated lists)
 │   ├── uncertainty.py                      # tokenizer + negation-aware uncertainty counting
