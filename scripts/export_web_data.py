@@ -22,6 +22,7 @@ import numpy as np
 import pandas as pd
 
 PARQUET = "data/processed/tech_uncertainty_features.parquet"
+RECENT = "data/processed/recent_uncertainty_signals.parquet"
 OUT = "web/data.js"
 
 MIN_QA_TOKENS = 500
@@ -46,6 +47,12 @@ def main() -> None:
     lo, hi = df["eps_ttm_growth_next_q"].quantile([WINSOR_PCT, 1 - WINSOR_PCT])
     df["eps_w"] = df["eps_ttm_growth_next_q"].clip(lo, hi)
 
+    # Recent quarters (2025Q2+) from the calibrated live source: density-only,
+    # no realized EPS yet. Keyed by ticker for append below.
+    recent = pd.read_parquet(RECENT).sort_values(["ticker", "year", "quarter"])
+    recent_by_ticker = dict(tuple(recent.groupby("ticker")))
+    n_recent = 0
+
     companies = []
     for ticker, g in df.groupby("ticker"):
         quarters = [
@@ -56,6 +63,17 @@ def main() -> None:
             }
             for r in g.itertuples()
         ]
+        # append calibrated recent quarters (already strictly newer than the
+        # panel's last quarter for this ticker; EPS not yet realized)
+        for r in recent_by_ticker.get(ticker, pd.DataFrame()).itertuples():
+            quarters.append({
+                "label": f"Q{int(r.quarter)} '{int(r.year) % 100:02d}",
+                "density": round(float(r.uncertainty_density_qa), 2),
+                "eps": None,
+            })
+            n_recent += 1
+        # r is computed only on quarters with a realized EPS outcome, so the
+        # density-only recent quarters do not affect it
         pairs = g.dropna(subset=["eps_w"])
         r_val = (
             round(float(np.corrcoef(pairs["uncertainty_density_qa"], pairs["eps_w"])[0, 1]), 2)
@@ -81,8 +99,8 @@ def main() -> None:
     with open(OUT, "w", encoding="utf-8") as f:
         f.write(body)
     n_q = sum(len(c["quarters"]) for c in companies)
-    print(f"wrote {OUT}: {len(companies)} companies, {n_q} quarters, "
-          f"eps winsorized at [{lo:.1f}, {hi:.1f}]")
+    print(f"wrote {OUT}: {len(companies)} companies, {n_q} quarters "
+          f"({n_recent} recent density-only), eps winsorized at [{lo:.1f}, {hi:.1f}]")
 
 
 if __name__ == "__main__":
