@@ -22,7 +22,7 @@ Full output: [`results/uncertainty_growth_analysis.txt`](results/uncertainty_gro
 
 `scripts/latest_signals.py` turns the panel finding into a monitoring view: each ticker's most recent call is z-scored against that company's *prior* calls only (strictly out-of-sample), producing a watchlist of names whose executives are hedging unusually hard right now — [`results/latest_uncertainty_signals.csv`](results/latest_uncertainty_signals.csv). The report is only as fresh as the dataset (currently through 2025Q1); a `quarters_behind` column flags stale tickers.
 
-**Explore it:** `web/` is a static, self-contained explorer — per-company density-vs-growth charts for all 72 tickers with the panel result up top. Serve it with `python -m http.server -d web` (or GitHub Pages); data is precomputed by `scripts/export_web_data.py`, nothing is fetched live.
+**Explore it:** `web/` is a static, self-contained explorer — per-company density-vs-growth charts for all 72 tickers with the panel result up top, live at [ahdithanu.github.io/earnings-call-nlp-risk-signals](https://ahdithanu.github.io/earnings-call-nlp-risk-signals/). The validated panel ends at 2025Q1; `scripts/fetch_recent_signals.py` extends each company's density series through 2026Q2 using a live transcript source ([Rogersurf/earnings-call-transcripts](https://huggingface.co/datasets/Rogersurf/earnings-call-transcripts)), calibrated to the panel's density scale on the ~90 company-quarters the two sources share (corr 0.94). Those recent quarters carry the hedging signal only — their next-quarter EPS is not yet realized — and never enter the regression. Regenerate the page with `scripts/export_web_data.py`.
 
 ## Methodology
 
@@ -36,7 +36,8 @@ Full output: [`results/uncertainty_growth_analysis.txt`](results/uncertainty_gro
 
 ```
 ├── data/processed/
-│   └── tech_uncertainty_features.parquet   # 3,025 rows × 29 cols: ids + metrics, no transcript text
+│   ├── tech_uncertainty_features.parquet   # 3,025 rows × 29 cols: ids + metrics, no transcript text
+│   └── recent_uncertainty_signals.parquet  # calibrated 2025Q2–2026 density for the explorer
 ├── results/
 │   ├── uncertainty_growth_analysis.txt     # headline analysis output
 │   ├── per_ticker_correlations.csv         # all 71 per-ticker correlations
@@ -44,6 +45,7 @@ Full output: [`results/uncertainty_growth_analysis.txt`](results/uncertainty_gro
 ├── scripts/
 │   ├── inspect_dataset.py                  # Step 1: schema inspection (run before mapping fields)
 │   ├── build_features.py                   # Steps 2–6: dataset → feature parquet
+│   ├── fetch_recent_signals.py             # calibrated 2025Q2–2026 density (explorer only)
 │   ├── analyze_uncertainty_growth.py       # panel analysis
 │   ├── latest_signals.py                   # forward-looking monitoring report
 │   └── export_web_data.py                  # regenerates web/data.js from the parquet
@@ -65,7 +67,9 @@ pip install -r requirements.txt
 python -m pytest tests/            # 19 tests
 python -m scripts.build_features   # rebuilds the parquet (downloads dataset on first run)
 python -m scripts.analyze_uncertainty_growth
-python -m scripts.latest_signals   # score each ticker's most recent call
+python -m scripts.latest_signals       # score each ticker's most recent call
+python -m scripts.fetch_recent_signals # calibrated 2025Q2–2026 quarters (explorer)
+python -m scripts.export_web_data      # regenerate web/data.js (panel + recent)
 ```
 
 Score any text directly:
@@ -84,7 +88,8 @@ print(result.uncertainty_count, result.negation_excluded, result.density)
 
 ## Data Sources
 
-- **Transcripts + EPS:** [glopardo/sp500-earnings-transcripts](https://huggingface.co/datasets/glopardo/sp500-earnings-transcripts) (Hugging Face)
+- **Transcripts + EPS (validated panel, 2013–2025Q1):** [glopardo/sp500-earnings-transcripts](https://huggingface.co/datasets/glopardo/sp500-earnings-transcripts) (Hugging Face)
+- **Recent transcripts (explorer signal, through 2026):** [Rogersurf/earnings-call-transcripts](https://huggingface.co/datasets/Rogersurf/earnings-call-transcripts) (Hugging Face)
 - **Uncertainty Dictionary:** [Loughran-McDonald Master Dictionary](https://sraf.nd.edu/loughranmcdonald-master-dictionary/)
 
 ## Roadmap
