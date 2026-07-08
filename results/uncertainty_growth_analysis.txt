@@ -25,3 +25,16 @@ ticker + quarter FE: coef on density_z = -0.644 pp per 1 SD (t=-2.41, p=0.016, n
 === lead-lag (within-ticker density_z) ===
 growth into current quarter (reactive): r = -0.047 (p=0.014, n=2701)
 growth into next quarter (predictive): r = -0.056 (p=0.003, n=2773)
+
+=== negative-tone control (does uncertainty survive controlling for LM negative tone?) ===
+corr(uncertainty_z, negative_z) in sample: +0.123
+
+[ticker FE] n=2773
+  uncertainty alone:       -0.892 pp (t=-3.13, p=0.002)
+  uncertainty + neg ctrl:  -0.715 pp (t=-2.53, p=0.011)
+  negative tone coef:      -1.432 pp (t=-4.25, p=0.000)
+
+[ticker + quarter FE] n=2773
+  uncertainty alone:       -0.644 pp (t=-2.41, p=0.016)
+  uncertainty + neg ctrl:  -0.546 pp (t=-2.05, p=0.040)
+  negative tone coef:      -1.077 pp (t=-3.65, p=0.000)

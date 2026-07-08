@@ -143,6 +143,33 @@ def main() -> None:
         r, p = stats.pearsonr(sub["density_z"], sub[col])
         emit(f"{label}: r = {r:+.3f} (p={p:.3f}, n={len(sub)})")
 
+    # ---- negative-tone control ---------------------------------------------
+    # Is the signal uncertainty specifically, or just general bad-news tone?
+    # Add LM negative density (z-scored within ticker, same tokenizer and
+    # negation handling) as a control and check whether the uncertainty
+    # coefficient survives. Both models are fit on the SAME sample so the
+    # with/without comparison is apples-to-apples.
+    df["neg_z"] = df.groupby("ticker")["negative_density_qa"].transform(
+        lambda s: (s - s.mean()) / s.std(ddof=0)
+    )
+    df = df.dropna(subset=["neg_z"])
+    emit("\n=== negative-tone control "
+         "(does uncertainty survive controlling for LM negative tone?) ===")
+    emit(f"corr(uncertainty_z, negative_z) in sample: "
+         f"{df['density_z'].corr(df['neg_z']):+.3f}")
+    for label, fe in [("ticker FE", "C(ticker)"),
+                      ("ticker + quarter FE", "C(ticker) + C(datacqtr)")]:
+        kw = dict(cov_type="cluster", cov_kwds={"groups": df["ticker"]})
+        a = smf.ols(f"growth_w ~ density_z + {fe}", data=df).fit(**kw)
+        b = smf.ols(f"growth_w ~ density_z + neg_z + {fe}", data=df).fit(**kw)
+        emit(f"\n[{label}] n={int(b.nobs)}")
+        emit(f"  uncertainty alone:       {a.params['density_z']:+.3f} pp "
+             f"(t={a.tvalues['density_z']:+.2f}, p={a.pvalues['density_z']:.3f})")
+        emit(f"  uncertainty + neg ctrl:  {b.params['density_z']:+.3f} pp "
+             f"(t={b.tvalues['density_z']:+.2f}, p={b.pvalues['density_z']:.3f})")
+        emit(f"  negative tone coef:      {b.params['neg_z']:+.3f} pp "
+             f"(t={b.tvalues['neg_z']:+.2f}, p={b.pvalues['neg_z']:.3f})")
+
     with open(OUT_TXT, "w", encoding="utf-8") as f:
         f.write(report.getvalue())
     print(f"\nwrote {OUT_CSV} ({len(per)} tickers) and {OUT_TXT}")

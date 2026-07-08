@@ -39,7 +39,7 @@ import pandas as pd
 from datasets import load_dataset
 
 from src.features import add_next_quarter_eps
-from src.lexicon import load_uncertainty_terms
+from src.lexicon import load_negative_terms, load_uncertainty_terms
 from src.qa_extract import extract_qa
 from src.uncertainty import count_uncertainty
 from src.universe import EXTRA_TECH_TICKERS
@@ -75,8 +75,24 @@ def score(text: str | None, lexicon: set[str], suffix: str) -> dict:
     }
 
 
+def score_negative(text: str | None, lexicon: set[str], suffix: str) -> dict:
+    """Negative-tone control metrics (same tokenizer/negation as uncertainty).
+
+    Used to test whether the uncertainty signal is distinct from general
+    bad-news tone; total_tokens is already emitted by ``score``.
+    """
+    if text is None:
+        return {f"negative_count_{suffix}": None, f"negative_density_{suffix}": None}
+    r = count_uncertainty(text, lexicon)
+    return {
+        f"negative_count_{suffix}": r.uncertainty_count,
+        f"negative_density_{suffix}": r.density,
+    }
+
+
 def main() -> None:
     lexicon = load_uncertainty_terms()
+    neg_lexicon = load_negative_terms()
     df = load_dataset(DATASET)["train"].to_pandas()
 
     # Step 2: tech filter + panel-key hygiene. GICS Information Technology
@@ -106,13 +122,18 @@ def main() -> None:
             {"qa_isolated": qa is not None}
             | score(transcript, lexicon, "full")
             | score(qa, lexicon, "qa")
+            | score_negative(transcript, neg_lexicon, "full")
+            | score_negative(qa, neg_lexicon, "qa")
         )
     metrics = pd.DataFrame(rows, index=df.index)
     # Q&A columns have missing values where isolation failed; keep counts as
     # nullable ints and densities as floats instead of object columns.
     metrics = metrics.astype(
-        {f"{c}_qa": "Int64" for c in ("total_tokens", "uncertainty_count", "negation_excluded")}
-        | {"uncertainty_density_qa": "float64", "uncertainty_density_full": "float64"}
+        {f"{c}_qa": "Int64" for c in
+         ("total_tokens", "uncertainty_count", "negation_excluded", "negative_count")}
+        | {c: "float64" for c in
+           ("uncertainty_density_qa", "uncertainty_density_full",
+            "negative_density_qa", "negative_density_full")}
     )
     out = pd.concat([df[PASSTHROUGH_COLS], metrics], axis=1)
     print(f"qa isolated: {out['qa_isolated'].sum()}/{len(out)} "
