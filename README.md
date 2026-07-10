@@ -14,7 +14,7 @@ Tested on 2,773 company-quarters across 72 large-cap tech companies:
 
 - **Elevated hedging is a real, but modest, bearish signal.** When a company's Q&A uncertainty density rises one standard deviation above its own norm, next-quarter trailing-12M EPS growth comes in about **0.9 percentage points lower** (t = −3.13, ticker fixed effects, ticker-clustered SEs). The effect survives quarter fixed effects (−0.64pp, t = −2.41), so it is not just market-wide bad times.
 - **It is weakly predictive, not merely reactive.** Density correlates slightly more with growth into the *next* quarter (r = −0.056) than with growth into the quarter being discussed (r = −0.047).
-- **It is not just bad-news tone.** Controlling for LM *negative* density (nearly orthogonal, r = 0.12), the uncertainty effect shrinks only ~20% and stays significant (−0.72pp, p = 0.011 with ticker FE; −0.55pp, p = 0.040 adding quarter FE). Negative tone is itself an even stronger independent predictor (≈ −1.1 to −1.4pp per SD), so hedging and pessimism carry complementary signal.
+- **It is distinct from other sentiment.** Controlling jointly for the other LM tone categories — negative, litigious, and constraining, all near-orthogonal to uncertainty (r ≤ 0.12) — the effect holds: −0.72pp (p = 0.010) with ticker FE, −0.55pp (p = 0.037) adding quarter FE. Only *negative* moves it at all (and is itself a strong independent predictor, ≈ −1.1 to −1.4pp per SD); litigious and constraining carry no signal here. So hedging is not a proxy for bad-news tone, legal hedging, or restrictive language.
 - **Per-company correlations are noise.** Across 71 tickers, individual density-growth correlations center near zero and only 3 clear p < 0.05 — chance level. An earlier version of this project reported strong per-company correlations (NVDA +0.96, MSFT −0.58) from ~3 quarters of data; on 40+ quarters per company those numbers do not replicate. Small samples tell vivid stories; panels tell true ones.
 
 Full output: [`results/uncertainty_growth_analysis.txt`](results/uncertainty_growth_analysis.txt) and [`results/per_ticker_correlations.csv`](results/per_ticker_correlations.csv).
@@ -31,13 +31,13 @@ Full output: [`results/uncertainty_growth_analysis.txt`](results/uncertainty_gro
 2. **Q&A isolation:** transcripts are a single speaker-prefixed string, so the Q&A boundary is found by position-aware markers (explicit "Question-and-Answer Session" header, falling back to the operator's first-question handoff; intro announcements are ignored). 96% of transcripts split cleanly; the rest are flagged rather than silently mis-scored.
 3. **Uncertainty scoring:** negation-aware matching against the full 297-term Loughran-McDonald uncertainty category — "no material risk" does not count as risk. Density = uncertainty terms per 100 tokens, computed separately for the full call and the Q&A section.
 4. **Outcome variable:** next-quarter trailing-12M EPS growth, with a calendar-gap guard so a missing quarter yields NaN instead of a fabricated "next quarter."
-5. **Analysis:** per-ticker correlation sweep (Pearson + Spearman), ticker fixed-effects panel regression with ticker-clustered standard errors, growth-context test, lead-lag comparison, and an LM-negative-tone control regression. Growth winsorized at 1%/99%; Q&A sections under 500 tokens excluded.
+5. **Analysis:** per-ticker correlation sweep (Pearson + Spearman), ticker fixed-effects panel regression with ticker-clustered standard errors, growth-context test, lead-lag comparison, and tone-control regressions against the other LM categories (negative, litigious, constraining). Growth winsorized at 1%/99%; Q&A sections under 500 tokens excluded.
 
 ## Repository Structure
 
 ```
 ├── data/processed/
-│   ├── tech_uncertainty_features.parquet   # 3,025 rows × 33 cols: ids + metrics, no transcript text
+│   ├── tech_uncertainty_features.parquet   # 3,025 rows × 41 cols: ids + metrics, no transcript text
 │   └── recent_uncertainty_signals.parquet  # calibrated 2025Q2–2026 density for the explorer
 ├── results/
 │   ├── uncertainty_growth_analysis.txt     # headline analysis output
@@ -57,16 +57,18 @@ Full output: [`results/uncertainty_growth_analysis.txt`](results/uncertainty_gro
 │   ├── qa_extract.py                       # Q&A boundary detection
 │   ├── features.py                         # forward EPS shift with quarter-gap guard
 │   └── universe.py                         # EXTRA_TECH_TICKERS union (GOOGL/META/AMZN) + fallback list
-├── tests/                                  # 22 unit tests
+├── tests/                                  # 24 unit tests
 ├── lm_uncertainty_terms.txt                # full 297-term LM uncertainty category
-└── lm_negative_terms.txt                   # full 2,355-term LM negative category (tone control)
+├── lm_negative_terms.txt                   # full 2,355-term LM negative category (tone control)
+├── lm_litigious_terms.txt                  # full 904-term LM litigious category (tone control)
+└── lm_constraining_terms.txt               # full 184-term LM constraining category (tone control)
 ```
 
 ## Quick Start
 
 ```bash
 pip install -r requirements.txt
-python -m pytest tests/            # 22 tests
+python -m pytest tests/            # 24 tests
 python -m scripts.build_features   # rebuilds the parquet (downloads dataset on first run)
 python -m scripts.analyze_uncertainty_growth
 python -m scripts.latest_signals       # score each ticker's most recent call
@@ -97,8 +99,7 @@ print(result.uncertainty_count, result.negation_excluded, result.density)
 ## Roadmap
 
 - [ ] Recover the ~4% of transcripts where Q&A isolation fails
-- [x] LM negative category as a tone control (uncertainty survives it)
-- [ ] Remaining L-M categories (litigious, constraining) as parallel features
+- [x] LM tone controls — negative, litigious, constraining (uncertainty survives all three)
 - [ ] Price-based outcomes (post-call drift) alongside EPS growth
 
 ## License

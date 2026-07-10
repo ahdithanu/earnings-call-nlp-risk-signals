@@ -26,15 +26,21 @@ ticker + quarter FE: coef on density_z = -0.644 pp per 1 SD (t=-2.41, p=0.016, n
 growth into current quarter (reactive): r = -0.047 (p=0.014, n=2701)
 growth into next quarter (predictive): r = -0.056 (p=0.003, n=2773)
 
-=== negative-tone control (does uncertainty survive controlling for LM negative tone?) ===
-corr(uncertainty_z, negative_z) in sample: +0.123
+=== tone-category controls (does uncertainty survive controlling for other LM tone?) ===
+corr(uncertainty_z, negative_z): +0.123
+corr(uncertainty_z, litigious_z): +0.040
+corr(uncertainty_z, constraining_z): +0.035
 
 [ticker FE] n=2773
-  uncertainty alone:       -0.892 pp (t=-3.13, p=0.002)
-  uncertainty + neg ctrl:  -0.715 pp (t=-2.53, p=0.011)
-  negative tone coef:      -1.432 pp (t=-4.25, p=0.000)
+  uncertainty, no control:  -0.892 pp (t=-3.13, p=0.002)
+  + negative     control:  -0.715 pp (t=-2.53, p=0.011) | negative coef -1.432 (p=0.000)
+  + litigious    control:  -0.896 pp (t=-3.18, p=0.001) | litigious coef +0.098 (p=0.791)
+  + constraining control:  -0.893 pp (t=-3.11, p=0.002) | constraining coef +0.034 (p=0.926)
+  + ALL three jointly:      -0.722 pp (t=-2.57, p=0.010)
 
 [ticker + quarter FE] n=2773
-  uncertainty alone:       -0.644 pp (t=-2.41, p=0.016)
-  uncertainty + neg ctrl:  -0.546 pp (t=-2.05, p=0.040)
-  negative tone coef:      -1.077 pp (t=-3.65, p=0.000)
+  uncertainty, no control:  -0.644 pp (t=-2.41, p=0.016)
+  + negative     control:  -0.546 pp (t=-2.05, p=0.040) | negative coef -1.077 (p=0.000)
+  + litigious    control:  -0.648 pp (t=-2.45, p=0.014) | litigious coef +0.129 (p=0.733)
+  + constraining control:  -0.648 pp (t=-2.41, p=0.016) | constraining coef +0.156 (p=0.657)
+  + ALL three jointly:      -0.555 pp (t=-2.09, p=0.037)

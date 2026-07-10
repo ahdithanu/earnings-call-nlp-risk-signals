@@ -39,7 +39,7 @@ import pandas as pd
 from datasets import load_dataset
 
 from src.features import add_next_quarter_eps
-from src.lexicon import load_negative_terms, load_uncertainty_terms
+from src.lexicon import CONTROL_LOADERS, load_uncertainty_terms
 from src.qa_extract import extract_qa
 from src.uncertainty import count_uncertainty
 from src.universe import EXTRA_TECH_TICKERS
@@ -75,24 +75,25 @@ def score(text: str | None, lexicon: set[str], suffix: str) -> dict:
     }
 
 
-def score_negative(text: str | None, lexicon: set[str], suffix: str) -> dict:
-    """Negative-tone control metrics (same tokenizer/negation as uncertainty).
+def score_category(text: str | None, lexicon: set[str], cat: str, suffix: str) -> dict:
+    """Tone-control metrics for one LM category (negative/litigious/...).
 
-    Used to test whether the uncertainty signal is distinct from general
-    bad-news tone; total_tokens is already emitted by ``score``.
+    Uses the same tokenizer and negation handling as the uncertainty score;
+    total_tokens is already emitted by ``score``, so only count and density
+    are returned here.
     """
     if text is None:
-        return {f"negative_count_{suffix}": None, f"negative_density_{suffix}": None}
+        return {f"{cat}_count_{suffix}": None, f"{cat}_density_{suffix}": None}
     r = count_uncertainty(text, lexicon)
     return {
-        f"negative_count_{suffix}": r.uncertainty_count,
-        f"negative_density_{suffix}": r.density,
+        f"{cat}_count_{suffix}": r.uncertainty_count,
+        f"{cat}_density_{suffix}": r.density,
     }
 
 
 def main() -> None:
     lexicon = load_uncertainty_terms()
-    neg_lexicon = load_negative_terms()
+    controls = {cat: loader() for cat, loader in CONTROL_LOADERS.items()}
     df = load_dataset(DATASET)["train"].to_pandas()
 
     # Step 2: tech filter + panel-key hygiene. GICS Information Technology
@@ -118,22 +119,26 @@ def main() -> None:
     rows = []
     for transcript in df["transcript"]:
         qa = extract_qa(transcript)
-        rows.append(
+        row = (
             {"qa_isolated": qa is not None}
             | score(transcript, lexicon, "full")
             | score(qa, lexicon, "qa")
-            | score_negative(transcript, neg_lexicon, "full")
-            | score_negative(qa, neg_lexicon, "qa")
         )
+        for cat, lex in controls.items():
+            row |= score_category(transcript, lex, cat, "full")
+            row |= score_category(qa, lex, cat, "qa")
+        rows.append(row)
     metrics = pd.DataFrame(rows, index=df.index)
     # Q&A columns have missing values where isolation failed; keep counts as
     # nullable ints and densities as floats instead of object columns.
+    count_cols = ["total_tokens", "uncertainty_count", "negation_excluded"]
+    count_cols += [f"{c}_count" for c in controls]
+    density_cols = ["uncertainty_density_qa", "uncertainty_density_full"]
+    density_cols += [f"{c}_density_qa" for c in controls]
+    density_cols += [f"{c}_density_full" for c in controls]
     metrics = metrics.astype(
-        {f"{c}_qa": "Int64" for c in
-         ("total_tokens", "uncertainty_count", "negation_excluded", "negative_count")}
-        | {c: "float64" for c in
-           ("uncertainty_density_qa", "uncertainty_density_full",
-            "negative_density_qa", "negative_density_full")}
+        {f"{c}_qa": "Int64" for c in count_cols}
+        | {c: "float64" for c in density_cols}
     )
     out = pd.concat([df[PASSTHROUGH_COLS], metrics], axis=1)
     print(f"qa isolated: {out['qa_isolated'].sum()}/{len(out)} "
