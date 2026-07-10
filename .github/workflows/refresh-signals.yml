@@ -1,0 +1,82 @@
+name: Refresh recent signals
+
+# Self-updating pipeline for the LIVE layer only. Pulls the latest earnings
+# calls from the Rogersurf source, rescores + recalibrates them, regenerates
+# the explorer data, and (if anything changed) commits and redeploys.
+#
+# It deliberately does NOT rebuild the validated panel
+# (data/processed/tech_uncertainty_features.parquet): that comes from a frozen
+# dataset and is the project's fixed, EPS-bearing backbone, kept under manual
+# control. The cron only advances the recent, density-only layer that sits
+# beyond the panel's watermark — exactly the two-layer split the pipeline is
+# built around.
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"   # Mondays 06:00 UTC — weekly, catches new calls fast enough
+  workflow_dispatch: {}     # allow manual refresh from the Actions tab
+
+permissions:
+  contents: write   # commit refreshed data back to main
+  pages: write      # deploy the updated site
+  id-token: write   # OIDC for deploy-pages
+
+concurrency:
+  group: refresh-signals
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Refresh recent signals and regenerate site data
+        env:
+          # HF egress may allow huggingface.co but not the Xet CDN hosts;
+          # the classic download path works everywhere.
+          HF_HUB_DISABLE_XET: "1"
+        run: |
+          python -m scripts.fetch_recent_signals
+          python -m scripts.export_web_data
+
+      - name: Commit refreshed data if it changed
+        id: commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          paths="data/processed/recent_uncertainty_signals.parquet web/data.js"
+          if git diff --quiet -- $paths; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No new calls since last run — nothing to commit."
+          else
+            git add $paths
+            git commit -m "Auto-refresh recent signals ($(date -u +%Y-%m-%d))"
+            git push
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Redeploy only when the data actually changed. A GITHUB_TOKEN push does
+      # not trigger the separate pages.yml workflow, so this job deploys itself.
+      - uses: actions/configure-pages@v5
+        if: steps.commit.outputs.changed == 'true'
+
+      - uses: actions/upload-pages-artifact@v3
+        if: steps.commit.outputs.changed == 'true'
+        with:
+          path: web
+
+      - id: deploy
+        if: steps.commit.outputs.changed == 'true'
+        uses: actions/deploy-pages@v4
