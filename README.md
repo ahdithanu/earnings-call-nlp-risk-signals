@@ -27,7 +27,7 @@ Full output: [`results/uncertainty_growth_analysis.txt`](results/uncertainty_gro
 
 ## Methodology
 
-1. **Data:** [glopardo/sp500-earnings-transcripts](https://huggingface.co/datasets/glopardo/sp500-earnings-transcripts) — 20,681 S&P 500 earnings-call transcripts with quarter keys, GICS sector, and trailing/forward 12-month EPS. Filtered to GICS Information Technology plus GOOGL, META, and AMZN, which GICS files under other sectors (72 tickers, 3,025 usable company-quarters; GOOG dropped as a duplicate share class of the same calls).
+1. **Data:** [glopardo/sp500-earnings-transcripts](https://huggingface.co/datasets/glopardo/sp500-earnings-transcripts) — 20,681 S&P 500 earnings-call transcripts with quarter keys, GICS sector, and trailing/forward 12-month EPS. Filtered to GICS Information Technology plus GOOGL, META, and AMZN, which GICS files under other sectors (72 tickers, 3,025 usable company-quarters; GOOG dropped as a duplicate share class of the same calls). The universe is defined in one place (`src/universe.py`); the site's headline counts are derived from the data, so adding companies is a single edit plus a rerun — no hardcoded numbers to chase.
 2. **Q&A isolation:** transcripts are a single speaker-prefixed string, so the Q&A boundary is found by position-aware markers (explicit "Question-and-Answer Session" header, falling back to the operator's first-question handoff; intro announcements are ignored). 96% of transcripts split cleanly; the rest are flagged rather than silently mis-scored.
 3. **Uncertainty scoring:** negation-aware matching against the full 297-term Loughran-McDonald uncertainty category — "no material risk" does not count as risk. Density = uncertainty terms per 100 tokens, computed separately for the full call and the Q&A section.
 4. **Outcome variable:** next-quarter trailing-12M EPS growth, with a calendar-gap guard so a missing quarter yields NaN instead of a fabricated "next quarter."
@@ -42,7 +42,8 @@ Full output: [`results/uncertainty_growth_analysis.txt`](results/uncertainty_gro
 ├── results/
 │   ├── uncertainty_growth_analysis.txt     # headline analysis output
 │   ├── per_ticker_correlations.csv         # all 71 per-ticker correlations
-│   └── latest_uncertainty_signals.csv      # latest call per ticker, scored vs own history
+│   ├── latest_uncertainty_signals.csv      # latest call per ticker, scored vs own history
+│   └── panel_stats.json                    # derived headline stats (n, coefs, p) the site reads
 ├── scripts/
 │   ├── inspect_dataset.py                  # Step 1: schema inspection (run before mapping fields)
 │   ├── build_features.py                   # Steps 2–6: dataset → feature parquet
@@ -56,7 +57,7 @@ Full output: [`results/uncertainty_growth_analysis.txt`](results/uncertainty_gro
 │   ├── uncertainty.py                      # tokenizer + negation-aware uncertainty counting
 │   ├── qa_extract.py                       # Q&A boundary detection
 │   ├── features.py                         # forward EPS shift with quarter-gap guard
-│   └── universe.py                         # EXTRA_TECH_TICKERS union (GOOGL/META/AMZN) + fallback list
+│   └── universe.py                         # the universe rule — single edit point to add companies
 ├── tests/                                  # 24 unit tests
 ├── lm_uncertainty_terms.txt                # full 297-term LM uncertainty category
 ├── lm_negative_terms.txt                   # full 2,355-term LM negative category (tone control)

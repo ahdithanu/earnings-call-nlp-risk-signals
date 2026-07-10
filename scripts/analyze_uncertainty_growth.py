@@ -20,6 +20,7 @@ results are reported alongside as the rank-based robustness check.
 """
 
 import io
+import json
 import os
 
 import numpy as np
@@ -30,6 +31,7 @@ from scipy import stats
 PARQUET = "data/processed/tech_uncertainty_features.parquet"
 OUT_CSV = "results/per_ticker_correlations.csv"
 OUT_TXT = "results/uncertainty_growth_analysis.txt"
+OUT_STATS = "results/panel_stats.json"
 
 MIN_QA_TOKENS = 500
 MIN_QUARTERS = 12  # per-ticker correlations need a usable time series
@@ -117,13 +119,20 @@ def main() -> None:
     df = df.dropna(subset=["density_z"])
 
     emit("\n=== panel regression: growth_w ~ density_z + FE, SE clustered by ticker ===")
-    for label, formula in [
-        ("ticker FE", "growth_w ~ density_z + C(ticker)"),
-        ("ticker + quarter FE", "growth_w ~ density_z + C(ticker) + C(datacqtr)"),
+    headline = {}  # capture betas/p-values to derive the site's PANEL constants
+    for key, label, formula in [
+        ("ticker_fe", "ticker FE", "growth_w ~ density_z + C(ticker)"),
+        ("ticker_quarter_fe", "ticker + quarter FE",
+         "growth_w ~ density_z + C(ticker) + C(datacqtr)"),
     ]:
         fit = smf.ols(formula, data=df).fit(
             cov_type="cluster", cov_kwds={"groups": df["ticker"]}
         )
+        headline[key] = {
+            "beta": float(fit.params["density_z"]),
+            "p": float(fit.pvalues["density_z"]),
+            "n": int(fit.nobs),
+        }
         emit(f"{label}: coef on density_z = {fit.params['density_z']:+.3f} pp per 1 SD "
              f"(t={fit.tvalues['density_z']:+.2f}, p={fit.pvalues['density_z']:.3f}, "
              f"n={int(fit.nobs)})")
@@ -180,9 +189,28 @@ def main() -> None:
         m = smf.ols(f"growth_w ~ density_z + {joint} + {fe}", data=df).fit(**kw)
         emit(f"  + ALL three jointly:      {unc(m)}")
 
+    # ---- headline stats for the site (derived, never hand-typed) -----------
+    # coefHigh/coefLow are the two FE specs' coefficients; p is a bucket
+    # covering the weaker (larger) of the two p-values.
+    def p_bucket(pmax: float) -> str:
+        for thresh in (0.001, 0.01, 0.02, 0.05):
+            if pmax < thresh:
+                return f"< {thresh:g}"
+        return f"= {pmax:.2f}"
+
+    stats_out = {
+        "n": headline["ticker_fe"]["n"],
+        "coefHigh": round(headline["ticker_fe"]["beta"], 2),
+        "coefLow": round(headline["ticker_quarter_fe"]["beta"], 2),
+        "p": p_bucket(max(headline["ticker_fe"]["p"],
+                          headline["ticker_quarter_fe"]["p"])),
+    }
+    with open(OUT_STATS, "w", encoding="utf-8") as f:
+        json.dump(stats_out, f, indent=2)
+
     with open(OUT_TXT, "w", encoding="utf-8") as f:
         f.write(report.getvalue())
-    print(f"\nwrote {OUT_CSV} ({len(per)} tickers) and {OUT_TXT}")
+    print(f"\nwrote {OUT_CSV} ({len(per)} tickers), {OUT_TXT}, and {OUT_STATS}")
 
 
 if __name__ == "__main__":
