@@ -10,12 +10,12 @@ Earnings calls contain signals beyond the numbers. Executives hedge when they're
 
 ## Key Finding
 
-Tested on 2,773 company-quarters across 72 large-cap tech companies:
+Tested on 2,847 company-quarters across 72 large-cap tech companies:
 
-- **Elevated hedging is a real, but modest, bearish signal.** When a company's Q&A uncertainty density rises one standard deviation above its own norm, next-quarter trailing-12M EPS growth comes in about **0.9 percentage points lower** (t = −3.13, ticker fixed effects, ticker-clustered SEs). The effect survives quarter fixed effects (−0.64pp, t = −2.41), so it is not just market-wide bad times.
-- **It is weakly predictive, not merely reactive.** Density correlates slightly more with growth into the *next* quarter (r = −0.056) than with growth into the quarter being discussed (r = −0.047).
-- **It is distinct from other sentiment.** Controlling jointly for the other LM tone categories — negative, litigious, and constraining, all near-orthogonal to uncertainty (r ≤ 0.12) — the effect holds: −0.72pp (p = 0.010) with ticker FE, −0.55pp (p = 0.037) adding quarter FE. Only *negative* moves it at all (and is itself a strong independent predictor, ≈ −1.1 to −1.4pp per SD); litigious and constraining carry no signal here. So hedging is not a proxy for bad-news tone, legal hedging, or restrictive language.
-- **Per-company correlations are noise.** Across 71 tickers, individual density-growth correlations center near zero and only 3 clear p < 0.05 — chance level. An earlier version of this project reported strong per-company correlations (NVDA +0.96, MSFT −0.58) from ~3 quarters of data; on 40+ quarters per company those numbers do not replicate. Small samples tell vivid stories; panels tell true ones.
+- **Elevated hedging is a real, but modest, bearish signal.** When a company's Q&A uncertainty density rises one standard deviation above its own norm, next-quarter trailing-12M EPS growth comes in about **0.9 percentage points lower** (t = −3.12, ticker fixed effects, ticker-clustered SEs). The effect survives quarter fixed effects (−0.65pp, t = −2.42), so it is not just market-wide bad times.
+- **It is weakly predictive, not merely reactive.** Density correlates slightly more with growth into the *next* quarter (r = −0.055) than with growth into the quarter being discussed (r = −0.043).
+- **It is distinct from other sentiment.** Controlling jointly for the other LM tone categories — negative, litigious, and constraining, all near-orthogonal to uncertainty (r ≤ 0.13) — the effect holds: −0.69pp (p = 0.012) with ticker FE, −0.55pp (p = 0.039) adding quarter FE. Only *negative* moves it at all (and is itself a strong independent predictor, ≈ −1.2 to −1.5pp per SD); litigious and constraining carry no signal here. So hedging is not a proxy for bad-news tone, legal hedging, or restrictive language.
+- **Per-company correlations are noise.** Across 71 tickers, individual density-growth correlations center near zero and only 4 clear p < 0.05 — chance level (≈3.6 expected). An earlier version of this project reported strong per-company correlations (NVDA +0.96, MSFT −0.58) from ~3 quarters of data; on 40+ quarters per company those numbers do not replicate. Small samples tell vivid stories; panels tell true ones.
 
 Full output: [`results/uncertainty_growth_analysis.txt`](results/uncertainty_growth_analysis.txt) and [`results/per_ticker_correlations.csv`](results/per_ticker_correlations.csv).
 
@@ -28,7 +28,7 @@ Full output: [`results/uncertainty_growth_analysis.txt`](results/uncertainty_gro
 ## Methodology
 
 1. **Data:** [glopardo/sp500-earnings-transcripts](https://huggingface.co/datasets/glopardo/sp500-earnings-transcripts) — 20,681 S&P 500 earnings-call transcripts with quarter keys, GICS sector, and trailing/forward 12-month EPS. Filtered to GICS Information Technology plus GOOGL, META, and AMZN, which GICS files under other sectors (72 tickers, 3,025 usable company-quarters; GOOG dropped as a duplicate share class of the same calls). The universe is defined in one place (`src/universe.py`); the site's headline counts are derived from the data, so adding companies is a single edit plus a rerun — no hardcoded numbers to chase.
-2. **Q&A isolation:** transcripts are a single speaker-prefixed string, so the Q&A boundary is found by position-aware markers (explicit "Question-and-Answer Session" header, falling back to the operator's first-question handoff; intro announcements are ignored). 96% of transcripts split cleanly; the rest are flagged rather than silently mis-scored.
+2. **Q&A isolation:** transcripts are a single speaker-prefixed string, so the Q&A boundary is found by position-aware markers (explicit "Question-and-Answer Session" header, falling back to the operator's first-question handoff; intro announcements are ignored). 98% of transcripts split cleanly (explicit header, first-question cue, or operator analyst-handoff fallback); the rest are flagged rather than silently mis-scored.
 3. **Uncertainty scoring:** negation-aware matching against the full 297-term Loughran-McDonald uncertainty category — "no material risk" does not count as risk. Density = uncertainty terms per 100 tokens, computed separately for the full call and the Q&A section.
 4. **Outcome variable:** next-quarter trailing-12M EPS growth, with a calendar-gap guard so a missing quarter yields NaN instead of a fabricated "next quarter."
 5. **Analysis:** per-ticker correlation sweep (Pearson + Spearman), ticker fixed-effects panel regression with ticker-clustered standard errors, growth-context test, lead-lag comparison, and tone-control regressions against the other LM categories (negative, litigious, constraining). Growth winsorized at 1%/99%; Q&A sections under 500 tokens excluded.
@@ -58,7 +58,7 @@ Full output: [`results/uncertainty_growth_analysis.txt`](results/uncertainty_gro
 │   ├── qa_extract.py                       # Q&A boundary detection
 │   ├── features.py                         # forward EPS shift with quarter-gap guard
 │   └── universe.py                         # the universe rule — single edit point to add companies
-├── tests/                                  # 24 unit tests
+├── tests/                                  # 26 unit tests
 ├── lm_uncertainty_terms.txt                # full 297-term LM uncertainty category
 ├── lm_negative_terms.txt                   # full 2,355-term LM negative category (tone control)
 ├── lm_litigious_terms.txt                  # full 904-term LM litigious category (tone control)
@@ -69,7 +69,7 @@ Full output: [`results/uncertainty_growth_analysis.txt`](results/uncertainty_gro
 
 ```bash
 pip install -r requirements.txt
-python -m pytest tests/            # 24 tests
+python -m pytest tests/            # 26 tests
 python -m scripts.build_features   # rebuilds the parquet (downloads dataset on first run)
 python -m scripts.analyze_uncertainty_growth
 python -m scripts.latest_signals       # score each ticker's most recent call
@@ -99,7 +99,7 @@ print(result.uncertainty_count, result.negation_excluded, result.density)
 
 ## Roadmap
 
-- [ ] Recover the ~4% of transcripts where Q&A isolation fails
+- [x] Q&A isolation recovery — operator analyst-handoff fallback (95.8% → 98.4%)
 - [x] LM tone controls — negative, litigious, constraining (uncertainty survives all three)
 - [ ] Price-based outcomes (post-call drift) alongside EPS growth
 

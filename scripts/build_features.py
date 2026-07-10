@@ -9,7 +9,7 @@ scripts/inspect_dataset.py — 20,681 rows, one `train` split):
           duplicate share class). That module is the single place to change
           which companies are in.
   Step 3  Isolate the Q&A section of each transcript (src/qa_extract.py).
-          ~96% of tech transcripts split cleanly; the rest keep only
+          ~98% of tech transcripts split cleanly; the rest keep only
           full-transcript metrics and qa_isolated=False.
   Step 4  Negation-aware LM uncertainty counts (src/uncertainty.py) on the
           full transcript and on the Q&A section separately.
