@@ -143,32 +143,42 @@ def main() -> None:
         r, p = stats.pearsonr(sub["density_z"], sub[col])
         emit(f"{label}: r = {r:+.3f} (p={p:.3f}, n={len(sub)})")
 
-    # ---- negative-tone control ---------------------------------------------
-    # Is the signal uncertainty specifically, or just general bad-news tone?
-    # Add LM negative density (z-scored within ticker, same tokenizer and
-    # negation handling) as a control and check whether the uncertainty
-    # coefficient survives. Both models are fit on the SAME sample so the
-    # with/without comparison is apples-to-apples.
-    df["neg_z"] = df.groupby("ticker")["negative_density_qa"].transform(
-        lambda s: (s - s.mean()) / s.std(ddof=0)
-    )
-    df = df.dropna(subset=["neg_z"])
-    emit("\n=== negative-tone control "
-         "(does uncertainty survive controlling for LM negative tone?) ===")
-    emit(f"corr(uncertainty_z, negative_z) in sample: "
-         f"{df['density_z'].corr(df['neg_z']):+.3f}")
+    # ---- tone-category controls --------------------------------------------
+    # Is the signal uncertainty specifically, or some other LM sentiment
+    # dimension? Add negative, litigious, and constraining density (each
+    # z-scored within ticker, same tokenizer and negation handling) as
+    # controls and check whether the uncertainty coefficient survives — each
+    # control alone, then all three jointly. Every model is fit on the SAME
+    # sample so the comparisons are apples-to-apples.
+    controls = ["negative", "litigious", "constraining"]
+    for cat in controls:
+        df[f"{cat}_z"] = df.groupby("ticker")[f"{cat}_density_qa"].transform(
+            lambda s: (s - s.mean()) / s.std(ddof=0)
+        )
+    df = df.dropna(subset=[f"{cat}_z" for cat in controls])
+    emit("\n=== tone-category controls "
+         "(does uncertainty survive controlling for other LM tone?) ===")
+    for cat in controls:
+        emit(f"corr(uncertainty_z, {cat}_z): "
+             f"{df['density_z'].corr(df[f'{cat}_z']):+.3f}")
+
+    def unc(fit):
+        return (f"{fit.params['density_z']:+.3f} pp "
+                f"(t={fit.tvalues['density_z']:+.2f}, p={fit.pvalues['density_z']:.3f})")
+
     for label, fe in [("ticker FE", "C(ticker)"),
                       ("ticker + quarter FE", "C(ticker) + C(datacqtr)")]:
         kw = dict(cov_type="cluster", cov_kwds={"groups": df["ticker"]})
-        a = smf.ols(f"growth_w ~ density_z + {fe}", data=df).fit(**kw)
-        b = smf.ols(f"growth_w ~ density_z + neg_z + {fe}", data=df).fit(**kw)
-        emit(f"\n[{label}] n={int(b.nobs)}")
-        emit(f"  uncertainty alone:       {a.params['density_z']:+.3f} pp "
-             f"(t={a.tvalues['density_z']:+.2f}, p={a.pvalues['density_z']:.3f})")
-        emit(f"  uncertainty + neg ctrl:  {b.params['density_z']:+.3f} pp "
-             f"(t={b.tvalues['density_z']:+.2f}, p={b.pvalues['density_z']:.3f})")
-        emit(f"  negative tone coef:      {b.params['neg_z']:+.3f} pp "
-             f"(t={b.tvalues['neg_z']:+.2f}, p={b.pvalues['neg_z']:.3f})")
+        base = smf.ols(f"growth_w ~ density_z + {fe}", data=df).fit(**kw)
+        emit(f"\n[{label}] n={int(base.nobs)}")
+        emit(f"  uncertainty, no control:  {unc(base)}")
+        for cat in controls:
+            m = smf.ols(f"growth_w ~ density_z + {cat}_z + {fe}", data=df).fit(**kw)
+            emit(f"  + {cat:<12} control:  {unc(m)} | "
+                 f"{cat} coef {m.params[f'{cat}_z']:+.3f} (p={m.pvalues[f'{cat}_z']:.3f})")
+        joint = " + ".join(f"{c}_z" for c in controls)
+        m = smf.ols(f"growth_w ~ density_z + {joint} + {fe}", data=df).fit(**kw)
+        emit(f"  + ALL three jointly:      {unc(m)}")
 
     with open(OUT_TXT, "w", encoding="utf-8") as f:
         f.write(report.getvalue())
