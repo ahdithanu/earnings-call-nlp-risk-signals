@@ -36,6 +36,28 @@ def test_marker_in_tail_is_ignored():
     assert find_qa_start(text) is None
 
 
+def test_operator_handoff_fallback():
+    # No explicit header and no "first question" cue — only the operator's
+    # analyst handoff marks the Q&A. The fallback should catch it.
+    text = REMARKS + "Our next question comes from Jane Doe of Big Bank. " + REMARKS
+    start = find_qa_start(text)
+    assert start is not None
+    assert text[start:].lower().startswith("next question comes from")
+
+
+def test_header_still_wins_over_handoff():
+    # When both a header and a later handoff exist, the header (higher
+    # priority) must win — the fallback never overrides it.
+    text = (
+        REMARKS
+        + "Question-and-Answer Session. "
+        + "Our next question comes from Jane Doe of Big Bank. "
+        + REMARKS
+    )
+    start = find_qa_start(text)
+    assert text[start:].startswith("Question-and-Answer Session")
+
+
 def test_extract_returns_suffix():
     text = REMARKS + "Question and Answer Session begins now. " + REMARKS
     qa = extract_qa(text)

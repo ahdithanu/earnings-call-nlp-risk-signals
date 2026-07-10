@@ -1,46 +1,46 @@
 === sample ===
-rows: 2773 of 3025 (qa_isolated, total_tokens_qa>=500, growth outcome present)
+rows: 2847 of 3025 (qa_isolated, total_tokens_qa>=500, growth outcome present)
 tickers: 72, years 2013-2024
-growth winsorized at [-53.1%, 98.3%]
+growth winsorized at [-50.2%, 99.7%]
 
 === per-ticker correlations (density_qa vs next-quarter TTM EPS growth) ===
 tickers with >= 12 usable quarters: 71
-pearson r:  mean -0.063, median -0.069, positive 25/71
-spearman:   mean -0.068, median -0.071, positive 25/71
-significant at p<0.05 (pearson): 3/71 (~3.6 expected by chance)
+pearson r:  mean -0.061, median -0.070, positive 24/71
+spearman:   mean -0.066, median -0.065, positive 26/71
+significant at p<0.05 (pearson): 4/71 (~3.6 expected by chance)
 
 README focus tickers (README claimed NVDA r=+0.959, MSFT r=-0.584 on ~3 quarters):
 ticker  n_quarters  pearson_r  pearson_p  spearman_rho  spearman_p  mean_growth  median_growth
-  MSFT          42     +0.115     +0.469        -0.031      +0.846       +3.621         +3.852
+  MSFT          43     +0.116     +0.458        -0.032      +0.840       +3.677         +4.008
   NVDA          43     -0.216     +0.165        -0.276      +0.073      +13.530        +13.362
 
 === growth-context test ===
-spearman(per-ticker median growth, per-ticker pearson r) = -0.054 (p=0.652)
-high-growth half: mean r -0.080 | mature half: mean r -0.046
+spearman(per-ticker median growth, per-ticker pearson r) = -0.049 (p=0.684)
+high-growth half: mean r -0.079 | mature half: mean r -0.044
 
 === panel regression: growth_w ~ density_z + FE, SE clustered by ticker ===
-ticker FE: coef on density_z = -0.892 pp per 1 SD (t=-3.13, p=0.002, n=2773)
-ticker + quarter FE: coef on density_z = -0.644 pp per 1 SD (t=-2.41, p=0.016, n=2773)
+ticker FE: coef on density_z = -0.882 pp per 1 SD (t=-3.12, p=0.002, n=2847)
+ticker + quarter FE: coef on density_z = -0.652 pp per 1 SD (t=-2.42, p=0.015, n=2847)
 
 === lead-lag (within-ticker density_z) ===
-growth into current quarter (reactive): r = -0.047 (p=0.014, n=2701)
-growth into next quarter (predictive): r = -0.056 (p=0.003, n=2773)
+growth into current quarter (reactive): r = -0.043 (p=0.024, n=2775)
+growth into next quarter (predictive): r = -0.055 (p=0.004, n=2847)
 
 === tone-category controls (does uncertainty survive controlling for other LM tone?) ===
-corr(uncertainty_z, negative_z): +0.123
-corr(uncertainty_z, litigious_z): +0.040
-corr(uncertainty_z, constraining_z): +0.035
+corr(uncertainty_z, negative_z): +0.127
+corr(uncertainty_z, litigious_z): +0.034
+corr(uncertainty_z, constraining_z): +0.038
 
-[ticker FE] n=2773
-  uncertainty, no control:  -0.892 pp (t=-3.13, p=0.002)
-  + negative     control:  -0.715 pp (t=-2.53, p=0.011) | negative coef -1.432 (p=0.000)
-  + litigious    control:  -0.896 pp (t=-3.18, p=0.001) | litigious coef +0.098 (p=0.791)
-  + constraining control:  -0.893 pp (t=-3.11, p=0.002) | constraining coef +0.034 (p=0.926)
-  + ALL three jointly:      -0.722 pp (t=-2.57, p=0.010)
+[ticker FE] n=2847
+  uncertainty, no control:  -0.882 pp (t=-3.12, p=0.002)
+  + negative     control:  -0.686 pp (t=-2.49, p=0.013) | negative coef -1.533 (p=0.000)
+  + litigious    control:  -0.886 pp (t=-3.16, p=0.002) | litigious coef +0.108 (p=0.773)
+  + constraining control:  -0.883 pp (t=-3.11, p=0.002) | constraining coef +0.034 (p=0.920)
+  + ALL three jointly:      -0.693 pp (t=-2.52, p=0.012)
 
-[ticker + quarter FE] n=2773
-  uncertainty, no control:  -0.644 pp (t=-2.41, p=0.016)
-  + negative     control:  -0.546 pp (t=-2.05, p=0.040) | negative coef -1.077 (p=0.000)
-  + litigious    control:  -0.648 pp (t=-2.45, p=0.014) | litigious coef +0.129 (p=0.733)
-  + constraining control:  -0.648 pp (t=-2.41, p=0.016) | constraining coef +0.156 (p=0.657)
-  + ALL three jointly:      -0.555 pp (t=-2.09, p=0.037)
+[ticker + quarter FE] n=2847
+  uncertainty, no control:  -0.652 pp (t=-2.42, p=0.015)
+  + negative     control:  -0.538 pp (t=-2.03, p=0.042) | negative coef -1.209 (p=0.000)
+  + litigious    control:  -0.657 pp (t=-2.45, p=0.014) | litigious coef +0.146 (p=0.707)
+  + constraining control:  -0.656 pp (t=-2.42, p=0.016) | constraining coef +0.137 (p=0.683)
+  + ALL three jointly:      -0.546 pp (t=-2.06, p=0.039)
