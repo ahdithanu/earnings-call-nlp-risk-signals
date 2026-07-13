@@ -159,7 +159,7 @@ def main() -> None:
     # controls and check whether the uncertainty coefficient survives — each
     # control alone, then all three jointly. Every model is fit on the SAME
     # sample so the comparisons are apples-to-apples.
-    controls = ["negative", "litigious", "constraining"]
+    controls = ["negative", "positive", "litigious", "constraining"]
     for cat in controls:
         df[f"{cat}_z"] = df.groupby("ticker")[f"{cat}_density_qa"].transform(
             lambda s: (s - s.mean()) / s.std(ddof=0)
@@ -187,7 +187,30 @@ def main() -> None:
                  f"{cat} coef {m.params[f'{cat}_z']:+.3f} (p={m.pvalues[f'{cat}_z']:.3f})")
         joint = " + ".join(f"{c}_z" for c in controls)
         m = smf.ols(f"growth_w ~ density_z + {joint} + {fe}", data=df).fit(**kw)
-        emit(f"  + ALL three jointly:      {unc(m)}")
+        emit(f"  + ALL {len(controls)} jointly:         {unc(m)}")
+
+    # ---- hedging momentum (level vs. change) -------------------------------
+    # Does a RISING hedging trend predict beyond the level? Momentum is the
+    # within-ticker quarter-over-quarter change in z-scored density (only
+    # across adjacent quarters, via the qidx gap guard). Regress growth on
+    # level and momentum together to see whether the change carries its own
+    # signal on top of where density sits.
+    df = df.sort_values(["ticker", "year", "quarter"])
+    qidx = df["year"] * 4 + df["quarter"] - 1
+    prev_z = df.groupby("ticker")["density_z"].shift(1)
+    adjacent = qidx.groupby(df["ticker"]).diff() == 1
+    df["density_momentum"] = (df["density_z"] - prev_z).where(adjacent)
+    mom = df.dropna(subset=["density_momentum"])
+    emit("\n=== hedging momentum (level vs. quarter-over-quarter change) ===")
+    for label, fe in [("ticker FE", "C(ticker)"),
+                      ("ticker + quarter FE", "C(ticker) + C(datacqtr)")]:
+        fit = smf.ols(f"growth_w ~ density_z + density_momentum + {fe}", data=mom).fit(
+            cov_type="cluster", cov_kwds={"groups": mom["ticker"]}
+        )
+        emit(f"[{label}] n={int(fit.nobs)}: "
+             f"level {fit.params['density_z']:+.3f} (p={fit.pvalues['density_z']:.3f}) | "
+             f"momentum {fit.params['density_momentum']:+.3f} "
+             f"(p={fit.pvalues['density_momentum']:.3f})")
 
     # ---- headline stats for the site (derived, never hand-typed) -----------
     # coefHigh/coefLow are the two FE specs' coefficients; p is a bucket
