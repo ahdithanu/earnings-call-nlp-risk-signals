@@ -149,6 +149,27 @@
       </div>
     </section>
 
+    <!-- ============ WATCHLIST ============ -->
+    <section data-screen-label="Hedging watchlist" style="padding: 56px 0 8px; border-top: 1px solid #232937;">
+      <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: 0.14em; color: #5b6478; margin-bottom: 8px;">HEDGING NOW — MOST ELEVATED VS. OWN HISTORY</div>
+      <p style="margin: 0 0 24px; color: #a7aec0; font-size: 14px; max-width: 64ch; text-wrap: pretty;">Each company's latest call scored against its <em>own</em> prior calls (out-of-sample z-score). Higher = executives hedging unusually hard right now. Click a row to open its chart.</p>
+      <div style="border: 1px solid #2b3345; background: #131725;">
+        <sc-for list="{{ watchlist }}" as="w" hint-placeholder-count="0">
+          <div onClick="{{ w.select }}" style="display: flex; align-items: center; gap: 16px; padding: 12px 18px; border-bottom: 1px solid #1c2230; cursor: pointer;" style-hover="background: #1d2333;">
+            <span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #5b6478; width: 22px;">{{ w.rank }}</span>
+            <span style="font-family: 'IBM Plex Mono', monospace; color: #e0ae5f; font-weight: 600; width: 64px;">{{ w.ticker }}</span>
+            <span style="flex: 1; min-width: 0; color: #a7aec0; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ w.name }}</span>
+            <div style="flex: 0 0 120px; height: 6px; background: #1c2230;">
+              <div style="height: 6px; width: {{ w.barW }}; background: {{ w.zColor }};"></div>
+            </div>
+            <span style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: {{ w.zColor }}; width: 78px; text-align: right;">{{ w.z }} SD</span>
+            <span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #5b6478; width: 52px; text-align: right;">{{ w.label }}</span>
+          </div>
+        </sc-for>
+      </div>
+      <p style="margin: 16px 0 0; color: #5b6478; font-size: 13px; max-width: 72ch; text-wrap: pretty;">A high reading is a prompt to read the transcript, not a forecast — the panel effect is real but modest, and any single company's number is noisy.</p>
+    </section>
+
     <!-- ============ METHOD ============ -->
     <section data-screen-label="How it works" style="padding: 64px 0 0;">
       <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: 0.14em; color: #5b6478; margin-bottom: 24px;">HOW IT WORKS — THE PIPELINE BEHIND THE PAGE</div>
@@ -289,7 +310,24 @@ class Component extends DCLogic {
     const loMag = haveCoef ? Math.min(Math.abs(P.coefLow), Math.abs(P.coefHigh)).toFixed(2) : null;
     const hiMag = haveCoef ? Math.max(Math.abs(P.coefLow), Math.abs(P.coefHigh)).toFixed(2) : null;
 
+    // ---- hedging watchlist: latest call z-scored vs the company's own past ----
+    const watchlist = (S.companies || [])
+      .filter((c) => c.latestZ != null)
+      .sort((a, b) => b.latestZ - a.latestZ)
+      .slice(0, 10)
+      .map((c, i) => ({
+        rank: i + 1,
+        ticker: c.ticker,
+        name: c.name,
+        label: c.latestLabel,
+        z: (c.latestZ >= 0 ? '+' : '−') + Math.abs(c.latestZ).toFixed(2),
+        zColor: c.latestZ >= 1 ? cHedge : (c.latestZ <= -1 ? cEps : '#a7aec0'),
+        barW: Math.round(Math.max(0, Math.min(1, (c.latestZ + 2.5) / 5)) * 100) + '%',
+        select: () => this.setState({ selected: c.ticker, query: '', open: false, hoverIdx: null }),
+      }));
+
     return {
+      watchlist,
       panelN: nStr,
       panelTickers: tk,
       coefRange: haveCoef ? `${loMag}–${hiMag}pp` : '—',
