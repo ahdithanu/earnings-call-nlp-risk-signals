@@ -28,19 +28,26 @@ growth into next quarter (predictive): r = -0.055 (p=0.004, n=2847)
 
 === tone-category controls (does uncertainty survive controlling for other LM tone?) ===
 corr(uncertainty_z, negative_z): +0.127
+corr(uncertainty_z, positive_z): -0.151
 corr(uncertainty_z, litigious_z): +0.034
 corr(uncertainty_z, constraining_z): +0.038
 
 [ticker FE] n=2847
   uncertainty, no control:  -0.882 pp (t=-3.12, p=0.002)
   + negative     control:  -0.686 pp (t=-2.49, p=0.013) | negative coef -1.533 (p=0.000)
+  + positive     control:  -0.735 pp (t=-2.60, p=0.009) | positive coef +0.969 (p=0.016)
   + litigious    control:  -0.886 pp (t=-3.16, p=0.002) | litigious coef +0.108 (p=0.773)
   + constraining control:  -0.883 pp (t=-3.11, p=0.002) | constraining coef +0.034 (p=0.920)
-  + ALL three jointly:      -0.693 pp (t=-2.52, p=0.012)
+  + ALL 4 jointly:         -0.581 pp (t=-2.08, p=0.038)
 
 [ticker + quarter FE] n=2847
   uncertainty, no control:  -0.652 pp (t=-2.42, p=0.015)
   + negative     control:  -0.538 pp (t=-2.03, p=0.042) | negative coef -1.209 (p=0.000)
+  + positive     control:  -0.553 pp (t=-2.03, p=0.043) | positive coef +0.746 (p=0.050)
   + litigious    control:  -0.657 pp (t=-2.45, p=0.014) | litigious coef +0.146 (p=0.707)
   + constraining control:  -0.656 pp (t=-2.42, p=0.016) | constraining coef +0.137 (p=0.683)
-  + ALL three jointly:      -0.546 pp (t=-2.06, p=0.039)
+  + ALL 4 jointly:         -0.467 pp (t=-1.73, p=0.083)
+
+=== hedging momentum (level vs. quarter-over-quarter change) ===
+[ticker FE] n=2716: level -1.387 (p=0.008) | momentum +0.577 (p=0.060)
+[ticker + quarter FE] n=2716: level -1.128 (p=0.026) | momentum +0.567 (p=0.053)

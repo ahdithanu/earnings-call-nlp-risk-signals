@@ -14,7 +14,8 @@ Tested on 2,847 company-quarters across 72 large-cap tech companies:
 
 - **Elevated hedging is a real, but modest, bearish signal.** When a company's Q&A uncertainty density rises one standard deviation above its own norm, next-quarter trailing-12M EPS growth comes in about **0.9 percentage points lower** (t = −3.12, ticker fixed effects, ticker-clustered SEs). The effect survives quarter fixed effects (−0.65pp, t = −2.42), so it is not just market-wide bad times.
 - **It is weakly predictive, not merely reactive.** Density correlates slightly more with growth into the *next* quarter (r = −0.055) than with growth into the quarter being discussed (r = −0.043).
-- **It is distinct from other sentiment.** Controlling jointly for the other LM tone categories — negative, litigious, and constraining, all near-orthogonal to uncertainty (r ≤ 0.13) — the effect holds: −0.69pp (p = 0.012) with ticker FE, −0.55pp (p = 0.039) adding quarter FE. Only *negative* moves it at all (and is itself a strong independent predictor, ≈ −1.2 to −1.5pp per SD); litigious and constraining carry no signal here. So hedging is not a proxy for bad-news tone, legal hedging, or restrictive language.
+- **It is largely distinct from other sentiment — with one honest caveat.** Against all four other LM tone categories (negative, positive, litigious, constraining), the uncertainty effect holds under ticker FE (−0.58pp, p = 0.038) but softens to marginal once positive *and* negative tone are jointly absorbed under the stricter ticker+quarter FE (−0.47pp, p = 0.083). Litigious and constraining carry no signal; the shared variance is with *directional* tone — negative (bearish, ≈ −1.2 to −1.5pp per SD) and positive (bullish, ≈ +0.7 to +1.0pp per SD), each an independent predictor in its own right. So hedging is its own signal, but partly overlaps with overall optimism/pessimism.
+- **It is the level that predicts, not the trend.** A company's standing hedging *level* carries the signal; the quarter-over-quarter *change* adds none (momentum coefficient marginal and, if anything, positive, p ≈ 0.05–0.06). Executives who hedge a lot matter more than executives who *started* hedging more.
 - **Per-company correlations are noise.** Across 71 tickers, individual density-growth correlations center near zero and only 4 clear p < 0.05 — chance level (≈3.6 expected). An earlier version of this project reported strong per-company correlations (NVDA +0.96, MSFT −0.58) from ~3 quarters of data; on 40+ quarters per company those numbers do not replicate. Small samples tell vivid stories; panels tell true ones.
 
 Full output: [`results/uncertainty_growth_analysis.txt`](results/uncertainty_growth_analysis.txt) and [`results/per_ticker_correlations.csv`](results/per_ticker_correlations.csv).
@@ -31,13 +32,13 @@ Full output: [`results/uncertainty_growth_analysis.txt`](results/uncertainty_gro
 2. **Q&A isolation:** transcripts are a single speaker-prefixed string, so the Q&A boundary is found by position-aware markers (explicit "Question-and-Answer Session" header, falling back to the operator's first-question handoff; intro announcements are ignored). 98% of transcripts split cleanly (explicit header, first-question cue, or operator analyst-handoff fallback); the rest are flagged rather than silently mis-scored.
 3. **Uncertainty scoring:** negation-aware matching against the full 297-term Loughran-McDonald uncertainty category — "no material risk" does not count as risk. Density = uncertainty terms per 100 tokens, computed separately for the full call and the Q&A section.
 4. **Outcome variable:** next-quarter trailing-12M EPS growth, with a calendar-gap guard so a missing quarter yields NaN instead of a fabricated "next quarter."
-5. **Analysis:** per-ticker correlation sweep (Pearson + Spearman), ticker fixed-effects panel regression with ticker-clustered standard errors, growth-context test, lead-lag comparison, and tone-control regressions against the other LM categories (negative, litigious, constraining). Growth winsorized at 1%/99%; Q&A sections under 500 tokens excluded.
+5. **Analysis:** per-ticker correlation sweep (Pearson + Spearman), ticker fixed-effects panel regression with ticker-clustered standard errors, growth-context test, lead-lag comparison, tone-control regressions against the other LM categories (negative, positive, litigious, constraining), and a hedging-momentum (level vs. QoQ change) check. Growth winsorized at 1%/99%; Q&A sections under 500 tokens excluded.
 
 ## Repository Structure
 
 ```
 ├── data/processed/
-│   ├── tech_uncertainty_features.parquet   # 3,025 rows × 41 cols: ids + metrics, no transcript text
+│   ├── tech_uncertainty_features.parquet   # 3,025 rows × 45 cols: ids + metrics, no transcript text
 │   └── recent_uncertainty_signals.parquet  # calibrated 2025Q2–2026 density for the explorer
 ├── results/
 │   ├── uncertainty_growth_analysis.txt     # headline analysis output
@@ -58,9 +59,10 @@ Full output: [`results/uncertainty_growth_analysis.txt`](results/uncertainty_gro
 │   ├── qa_extract.py                       # Q&A boundary detection
 │   ├── features.py                         # forward EPS shift with quarter-gap guard
 │   └── universe.py                         # the universe rule — single edit point to add companies
-├── tests/                                  # 26 unit tests
+├── tests/                                  # 27 unit tests
 ├── lm_uncertainty_terms.txt                # full 297-term LM uncertainty category
 ├── lm_negative_terms.txt                   # full 2,355-term LM negative category (tone control)
+├── lm_positive_terms.txt                   # full 354-term LM positive category (tone control)
 ├── lm_litigious_terms.txt                  # full 904-term LM litigious category (tone control)
 └── lm_constraining_terms.txt               # full 184-term LM constraining category (tone control)
 ```
@@ -69,7 +71,7 @@ Full output: [`results/uncertainty_growth_analysis.txt`](results/uncertainty_gro
 
 ```bash
 pip install -r requirements.txt
-python -m pytest tests/            # 26 tests
+python -m pytest tests/            # 27 tests
 python -m scripts.build_features   # rebuilds the parquet (downloads dataset on first run)
 python -m scripts.analyze_uncertainty_growth
 python -m scripts.latest_signals       # score each ticker's most recent call

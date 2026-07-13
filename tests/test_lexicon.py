@@ -6,6 +6,7 @@ from src.lexicon import (
     load_lexicon,
     load_litigious_terms,
     load_negative_terms,
+    load_positive_terms,
     load_uncertainty_terms,
 )
 
@@ -30,10 +31,16 @@ def test_litigious_and_constraining_are_full():
     assert len(load_constraining_terms()) == 184
 
 
+def test_positive_lexicon_is_full():
+    terms = load_positive_terms()
+    assert len(terms) == 354
+    assert "strong" in terms and "great" in terms
+
+
 def test_control_loaders_registry():
     # every registered control loads and none is the uncertainty list
     unc = load_uncertainty_terms()
-    assert set(CONTROL_LOADERS) == {"negative", "litigious", "constraining"}
+    assert set(CONTROL_LOADERS) == {"negative", "positive", "litigious", "constraining"}
     for loader in CONTROL_LOADERS.values():
         terms = loader()
         assert terms and terms != unc

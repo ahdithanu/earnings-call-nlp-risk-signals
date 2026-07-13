@@ -1,14 +1,15 @@
 """Loading of Loughran-McDonald sentiment lexicons.
 
-The repo ships four categories from the LM Master Dictionary, so no network
+The repo ships five categories from the LM Master Dictionary, so no network
 access is needed at runtime:
 - ``lm_uncertainty_terms.txt`` — the full 297-term Uncertainty category (the
   project's predictor).
 - ``lm_negative_terms.txt`` — the full 2,355-term Negative category.
+- ``lm_positive_terms.txt`` — the full 354-term Positive category.
 - ``lm_litigious_terms.txt`` — the full 904-term Litigious category.
 - ``lm_constraining_terms.txt`` — the full 184-term Constraining category.
 
-The last three are tone controls: is the signal uncertainty specifically, or
+The latter four are tone controls: is the signal uncertainty specifically, or
 just some other LM sentiment dimension? All were extracted from the same
 dictionary version; the uncertainty list matches it exactly on all 297 terms.
 """
@@ -18,12 +19,14 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_LEXICON_PATH = REPO_ROOT / "lm_uncertainty_terms.txt"
 NEGATIVE_LEXICON_PATH = REPO_ROOT / "lm_negative_terms.txt"
+POSITIVE_LEXICON_PATH = REPO_ROOT / "lm_positive_terms.txt"
 LITIGIOUS_LEXICON_PATH = REPO_ROOT / "lm_litigious_terms.txt"
 CONSTRAINING_LEXICON_PATH = REPO_ROOT / "lm_constraining_terms.txt"
 
 # Expected LM category sizes; guard against a truncated or overwritten file.
 EXPECTED_MIN_TERMS = 290  # uncertainty (297)
 EXPECTED_MIN_NEGATIVE = 2300  # negative (2,355)
+EXPECTED_MIN_POSITIVE = 350  # positive (354)
 EXPECTED_MIN_LITIGIOUS = 890  # litigious (904)
 EXPECTED_MIN_CONSTRAINING = 180  # constraining (184)
 
@@ -59,6 +62,11 @@ def load_negative_terms(path: Path | str = NEGATIVE_LEXICON_PATH) -> set[str]:
     return load_lexicon(path, EXPECTED_MIN_NEGATIVE)
 
 
+def load_positive_terms(path: Path | str = POSITIVE_LEXICON_PATH) -> set[str]:
+    """Return the LM positive terms as a lowercased, deduped set."""
+    return load_lexicon(path, EXPECTED_MIN_POSITIVE)
+
+
 def load_litigious_terms(path: Path | str = LITIGIOUS_LEXICON_PATH) -> set[str]:
     """Return the LM litigious terms as a lowercased, deduped set."""
     return load_lexicon(path, EXPECTED_MIN_LITIGIOUS)
@@ -73,6 +81,7 @@ def load_constraining_terms(path: Path | str = CONSTRAINING_LEXICON_PATH) -> set
 # pipeline uses. Lets build_features score every control category in one loop.
 CONTROL_LOADERS = {
     "negative": load_negative_terms,
+    "positive": load_positive_terms,
     "litigious": load_litigious_terms,
     "constraining": load_constraining_terms,
 }
