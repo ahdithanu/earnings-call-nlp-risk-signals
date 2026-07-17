@@ -56,7 +56,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          paths="data/processed/recent_uncertainty_signals.parquet web/data.js"
+          paths="data/processed/recent_uncertainty_signals.parquet web/index.html"
           if git diff --quiet -- $paths; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
             echo "No new calls since last run — nothing to commit."
