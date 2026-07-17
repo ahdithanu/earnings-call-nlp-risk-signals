@@ -51,8 +51,8 @@ Full output: [`results/uncertainty_growth_analysis.txt`](results/uncertainty_gro
 │   ├── fetch_recent_signals.py             # calibrated 2025Q2–2026 density (explorer only)
 │   ├── analyze_uncertainty_growth.py       # panel analysis
 │   ├── latest_signals.py                   # forward-looking monitoring report
-│   └── export_web_data.py                  # regenerates web/data.js from the parquet
-├── web/                                    # static Uncertainty Explorer (index.html + generated data.js)
+│   └── export_web_data.py                  # renders self-contained web/index.html from the parquet
+├── web/                                    # self-contained explorer: index.template.html (source) → index.html (generated, data inlined)
 ├── src/
 │   ├── lexicon.py                          # LM lexicon loader (refuses truncated lists)
 │   ├── uncertainty.py                      # tokenizer + negation-aware uncertainty counting
@@ -76,7 +76,7 @@ python -m scripts.build_features   # rebuilds the parquet (downloads dataset on 
 python -m scripts.analyze_uncertainty_growth
 python -m scripts.latest_signals       # score each ticker's most recent call
 python -m scripts.fetch_recent_signals # calibrated 2025Q2–2026 quarters (explorer)
-python -m scripts.export_web_data      # regenerate web/data.js (panel + recent)
+python -m scripts.export_web_data      # render web/index.html (panel + recent, data inlined)
 ```
 
 Score any text directly:
