@@ -20,6 +20,16 @@ Tested on 2,847 company-quarters across 72 large-cap tech companies:
 
 Full output: [`results/uncertainty_growth_analysis.txt`](results/uncertainty_growth_analysis.txt) and [`results/per_ticker_correlations.csv`](results/per_ticker_correlations.csv).
 
+## Does it generalize beyond tech?
+
+Re-running the *same* ticker-fixed-effects specification across all 11 GICS sectors of the S&P 500 — 18,836 company-quarters, 494 tickers ([`scripts/analyze_cross_sector.py`](scripts/analyze_cross_sector.py)) — the signal is **not tech-specific, but it is concentrated:**
+
+- Strongest in **Information Technology** (−0.89pp, p = 0.003), and also significantly negative in **Financials** (−0.53pp, p = 0.003) and **Consumer Staples** (−0.43pp, p = 0.026). Negative in **8 of 11 sectors**.
+- **Pooled across the entire S&P 500** (ticker + quarter fixed effects), elevated hedging still predicts weaker next-quarter EPS growth: **−0.30pp per SD, p = 0.036** — real market-wide, if about a third the size seen in tech.
+- **Absent** in Health Care, Energy, and Materials (flat/positive, non-significant) — so it is a genuine but uneven effect, largest where it was first found.
+
+Full table: [`results/cross_sector_robustness.txt`](results/cross_sector_robustness.txt) · [`results/cross_sector.csv`](results/cross_sector.csv).
+
 ## Forward-Looking Signals
 
 `scripts/latest_signals.py` turns the panel finding into a monitoring view: each ticker's most recent call is z-scored against that company's *prior* calls only (strictly out-of-sample), producing a watchlist of names whose executives are hedging unusually hard right now — [`results/latest_uncertainty_signals.csv`](results/latest_uncertainty_signals.csv). The report is only as fresh as the dataset (currently through 2025Q1); a `quarters_behind` column flags stale tickers.
@@ -43,6 +53,8 @@ Full output: [`results/uncertainty_growth_analysis.txt`](results/uncertainty_gro
 ├── results/
 │   ├── uncertainty_growth_analysis.txt     # headline analysis output
 │   ├── per_ticker_correlations.csv         # all 71 per-ticker correlations
+│   ├── cross_sector_robustness.txt         # finding re-run across all 11 GICS sectors
+│   ├── cross_sector.csv                    # per-sector coefficients
 │   ├── latest_uncertainty_signals.csv      # latest call per ticker, scored vs own history
 │   └── panel_stats.json                    # derived headline stats (n, coefs, p) the site reads
 ├── scripts/
@@ -50,6 +62,7 @@ Full output: [`results/uncertainty_growth_analysis.txt`](results/uncertainty_gro
 │   ├── build_features.py                   # Steps 2–6: dataset → feature parquet
 │   ├── fetch_recent_signals.py             # calibrated 2025Q2–2026 density (explorer only)
 │   ├── analyze_uncertainty_growth.py       # panel analysis
+│   ├── analyze_cross_sector.py             # S&P 500 cross-sector robustness
 │   ├── latest_signals.py                   # forward-looking monitoring report
 │   └── export_web_data.py                  # renders self-contained web/index.html from the parquet
 ├── web/                                    # self-contained explorer: index.template.html (source) → index.html (generated, data inlined)
