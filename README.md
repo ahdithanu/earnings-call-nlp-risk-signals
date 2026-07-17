@@ -30,6 +30,10 @@ Re-running the *same* ticker-fixed-effects specification across all 11 GICS sect
 
 Full table: [`results/cross_sector_robustness.txt`](results/cross_sector_robustness.txt) · [`results/cross_sector.csv`](results/cross_sector.csv).
 
+## Price outcomes (post-call drift)
+
+Does hedging predict the *stock*, not just EPS? [`scripts/fetch_prices.py`](scripts/fetch_prices.py) builds a post-call return outcome — the immediate 5-day reaction and the ~1-quarter drift — from [Financial Modeling Prep](https://financialmodelingprep.com/), and [`scripts/analyze_price_drift.py`](scripts/analyze_price_drift.py) runs the *same* fixed-effects test with the return as the outcome. The drift math is unit-tested; because the fetch needs a price-API key and open network egress, it runs via the `price-outcomes` GitHub Actions workflow — add an `FMP_API_KEY` repo secret (Settings → Secrets and variables → Actions) and dispatch it. Results land in `results/price_drift.txt`.
+
 ## Forward-Looking Signals
 
 `scripts/latest_signals.py` turns the panel finding into a monitoring view: each ticker's most recent call is z-scored against that company's *prior* calls only (strictly out-of-sample), producing a watchlist of names whose executives are hedging unusually hard right now — [`results/latest_uncertainty_signals.csv`](results/latest_uncertainty_signals.csv). The report is only as fresh as the dataset (currently through 2025Q1); a `quarters_behind` column flags stale tickers.
@@ -63,6 +67,8 @@ Full table: [`results/cross_sector_robustness.txt`](results/cross_sector_robustn
 │   ├── fetch_recent_signals.py             # calibrated 2025Q2–2026 density (explorer only)
 │   ├── analyze_uncertainty_growth.py       # panel analysis
 │   ├── analyze_cross_sector.py             # S&P 500 cross-sector robustness
+│   ├── fetch_prices.py                     # post-call prices from FMP (needs FMP_API_KEY)
+│   └── analyze_price_drift.py              # does hedging predict returns, not just EPS?
 │   ├── latest_signals.py                   # forward-looking monitoring report
 │   └── export_web_data.py                  # renders self-contained web/index.html from the parquet
 ├── web/                                    # self-contained explorer: index.template.html (source) → index.html (generated, data inlined)
@@ -71,8 +77,9 @@ Full table: [`results/cross_sector_robustness.txt`](results/cross_sector_robustn
 │   ├── uncertainty.py                      # tokenizer + negation-aware uncertainty counting
 │   ├── qa_extract.py                       # Q&A boundary detection
 │   ├── features.py                         # forward EPS shift with quarter-gap guard
+│   ├── price_drift.py                      # post-call return math (unit-tested)
 │   └── universe.py                         # the universe rule — single edit point to add companies
-├── tests/                                  # 27 unit tests
+├── tests/                                  # 32 unit tests
 ├── lm_uncertainty_terms.txt                # full 297-term LM uncertainty category
 ├── lm_negative_terms.txt                   # full 2,355-term LM negative category (tone control)
 ├── lm_positive_terms.txt                   # full 354-term LM positive category (tone control)
@@ -84,7 +91,7 @@ Full table: [`results/cross_sector_robustness.txt`](results/cross_sector_robustn
 
 ```bash
 pip install -r requirements.txt
-python -m pytest tests/            # 27 tests
+python -m pytest tests/            # 32 tests
 python -m scripts.build_features   # rebuilds the parquet (downloads dataset on first run)
 python -m scripts.analyze_uncertainty_growth
 python -m scripts.latest_signals       # score each ticker's most recent call
@@ -116,7 +123,7 @@ print(result.uncertainty_count, result.negation_excluded, result.density)
 
 - [x] Q&A isolation recovery — operator analyst-handoff fallback (95.8% → 98.4%)
 - [x] LM tone controls — negative, litigious, constraining (uncertainty survives all three)
-- [ ] Price-based outcomes (post-call drift) alongside EPS growth
+- [x] Price-based outcomes scaffolded — post-call drift fetch + regression + CI workflow (activate with an `FMP_API_KEY` secret)
 
 ## License
 
