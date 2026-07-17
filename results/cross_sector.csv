@@ -1,0 +1,12 @@
+sector,n,tickers,beta_pp,t,p
+Communication Services,750,20,-1.495,-1.81,0.0701
+Consumer Discretionary,1943,49,-1.283,-1.21,0.2248
+Consumer Staples,1324,37,-0.433,-2.23,0.0255
+Energy,809,22,1.536,0.39,0.6942
+Financials,2771,72,-0.525,-2.92,0.0035
+Health Care,2370,60,0.218,0.6,0.5512
+Industrials,2823,77,-0.297,-1.38,0.1679
+Information Technology,2678,69,-0.887,-2.99,0.0028
+Materials,1025,27,0.288,0.8,0.4246
+Real Estate,1226,31,-0.709,-0.95,0.3426
+Utilities,1117,30,-0.428,-1.32,0.1869

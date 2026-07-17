@@ -1,0 +1,21 @@
+scoring 20411 transcripts across 11 sectors…
+usable company-quarters (Q&A>= 500 tokens, growth present): 18836
+
+=== per-sector: ticker-FE panel, SE clustered by ticker ===
+sector                         n  tickers   beta_pp      t       p
+Communication Services       750       20    -1.495  -1.81   0.070
+Consumer Discretionary      1943       49    -1.283  -1.21   0.225
+Consumer Staples            1324       37    -0.433  -2.23   0.026
+Energy                       809       22    +1.536  +0.39   0.694
+Financials                  2771       72    -0.525  -2.92   0.003
+Health Care                 2370       60    +0.218  +0.60   0.551
+Industrials                 2823       77    -0.297  -1.38   0.168
+Information Technology      2678       69    -0.887  -2.99   0.003
+Materials                   1025       27    +0.288  +0.80   0.425
+Real Estate                 1226       31    -0.709  -0.95   0.343
+Utilities                   1117       30    -0.428  -1.32   0.187
+
+=== pooled, ALL sectors (ticker + quarter FE, clustered by ticker) ===
+coef on density_z = -0.297 pp per 1 SD (t=-2.10, p=0.036, n=18836, 494 tickers, 11 sectors)
+
+sectors with a negative coefficient: 8/11 | negative AND p<0.05: 3/11
