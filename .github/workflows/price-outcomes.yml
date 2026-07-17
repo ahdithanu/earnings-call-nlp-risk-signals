@@ -1,0 +1,57 @@
+name: Price outcomes (post-call drift)
+
+# Builds the price-drift outcome that the restricted dev sandbox can't:
+# fetch_prices needs both an FMP key and open network egress, which the
+# GitHub runner has. Add the key as a repo secret named FMP_API_KEY
+# (Settings → Secrets and variables → Actions), then run this workflow.
+# Manual only — it hits an external paid API, so it should not run on a
+# schedule or on every push.
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: price-outcomes
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Fetch prices and analyze drift
+        env:
+          FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
+          HF_HUB_DISABLE_XET: "1"
+        run: |
+          if [ -z "$FMP_API_KEY" ]; then
+            echo "::error::FMP_API_KEY secret is not set. Add it under Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+          python -m scripts.fetch_prices
+          python -m scripts.analyze_price_drift
+
+      - name: Commit results
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          paths="data/processed/price_outcomes.parquet results/price_drift.txt"
+          if git diff --quiet -- $paths && git ls-files --error-unmatch $paths >/dev/null 2>&1; then
+            echo "No change in price outcomes."
+          else
+            git add $paths
+            git commit -m "Update post-call price-drift outcomes"
+            git push
+          fi
