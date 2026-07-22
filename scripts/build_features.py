@@ -10,7 +10,11 @@ scripts/inspect_dataset.py — 20,681 rows, one `train` split):
           which companies are in.
   Step 3  Isolate the Q&A section of each transcript (src/qa_extract.py).
           ~98% of tech transcripts split cleanly; the rest keep only
-          full-transcript metrics and qa_isolated=False.
+          full-transcript metrics and qa_isolated=False. Within the Q&A,
+          src/qa_isolation.py additionally extracts executive-only answers
+          (roster + prepared-remarks speaker attribution) for the _execqa
+          metric scope; where attribution fails, _execqa columns are null
+          and qa_exec_isolated=False.
   Step 4  Negation-aware LM uncertainty counts (src/uncertainty.py) on the
           full transcript and on the Q&A section separately.
   Step 5  Forward EPS outcome (src/features.py). The dataset has no single-
@@ -39,6 +43,7 @@ from datasets import load_dataset
 from src.features import add_next_quarter_eps
 from src.lexicon import CONTROL_LOADERS, load_uncertainty_terms
 from src.qa_extract import extract_qa
+from src.qa_isolation import isolate_executive_qa
 from src.uncertainty import count_uncertainty
 from src.universe import select_universe
 
@@ -110,34 +115,47 @@ def main() -> None:
     )
     print(f"after dedup on (ticker, year, quarter): {len(df)}")
 
-    # Steps 3-4: Q&A isolation + uncertainty scoring.
+    # Steps 3-4: Q&A isolation + uncertainty scoring. Three text scopes per
+    # transcript: the full call, the Q&A section (all speakers), and the
+    # executive-only answers within the Q&A (src/qa_isolation.py) — the
+    # _execqa scope strips analyst questions, whose phrasing is itself
+    # uncertainty-heavy ("what risks do you see"), out of the signal.
     rows = []
     for transcript in df["transcript"]:
         qa = extract_qa(transcript)
+        iso = isolate_executive_qa(transcript)
+        exec_qa = iso.text if iso.mode == "exec_turns" else None
         row = (
-            {"qa_isolated": qa is not None}
+            {"qa_isolated": qa is not None, "qa_exec_isolated": exec_qa is not None}
             | score(transcript, lexicon, "full")
             | score(qa, lexicon, "qa")
+            | score(exec_qa, lexicon, "execqa")
         )
         for cat, lex in controls.items():
             row |= score_category(transcript, lex, cat, "full")
             row |= score_category(qa, lex, cat, "qa")
+            row |= score_category(exec_qa, lex, cat, "execqa")
         rows.append(row)
     metrics = pd.DataFrame(rows, index=df.index)
     # Q&A columns have missing values where isolation failed; keep counts as
     # nullable ints and densities as floats instead of object columns.
     count_cols = ["total_tokens", "uncertainty_count", "negation_excluded"]
     count_cols += [f"{c}_count" for c in controls]
-    density_cols = ["uncertainty_density_qa", "uncertainty_density_full"]
+    density_cols = ["uncertainty_density_qa", "uncertainty_density_full",
+                    "uncertainty_density_execqa"]
     density_cols += [f"{c}_density_qa" for c in controls]
     density_cols += [f"{c}_density_full" for c in controls]
+    density_cols += [f"{c}_density_execqa" for c in controls]
     metrics = metrics.astype(
         {f"{c}_qa": "Int64" for c in count_cols}
+        | {f"{c}_execqa": "Int64" for c in count_cols}
         | {c: "float64" for c in density_cols}
     )
     out = pd.concat([df[PASSTHROUGH_COLS], metrics], axis=1)
     print(f"qa isolated: {out['qa_isolated'].sum()}/{len(out)} "
           f"({out['qa_isolated'].mean() * 100:.1f}%)")
+    print(f"exec-only qa isolated: {out['qa_exec_isolated'].sum()}/{len(out)} "
+          f"({out['qa_exec_isolated'].mean() * 100:.1f}%)")
     print(f"total negation-suppressed matches (full): "
           f"{out['negation_excluded_full'].sum()}")
 
