@@ -1,0 +1,21 @@
+=== sample (identical rows for both scopes) ===
+rows: 2809 of 3025 (both scopes isolated, both >= 500 tokens, growth outcome present)
+tickers: 72, years 2013-2024
+corr(density_qa, density_execqa): +0.825
+exec share of Q&A tokens: median 67.8%
+
+=== scope: full Q&A (all speakers) [qa] ===
+  [ticker FE] coef = -0.905 pp per 1 SD (t=-3.20, p=0.001, n=2809)
+  [ticker + quarter FE] coef = -0.668 pp per 1 SD (t=-2.51, p=0.012, n=2809)
+  per-ticker pearson r (>= 12 quarters, 71 tickers): mean -0.064, median -0.068, positive 24/71
+  lead-lag: predictive r=-0.056 (p=0.003) vs reactive r=-0.035 (p=0.068)
+
+=== scope: executive answers only [execqa] ===
+  [ticker FE] coef = -0.800 pp per 1 SD (t=-2.05, p=0.040, n=2809)
+  [ticker + quarter FE] coef = -0.685 pp per 1 SD (t=-1.80, p=0.072, n=2809)
+  per-ticker pearson r (>= 12 quarters, 71 tickers): mean -0.037, median -0.036, positive 29/71
+  lead-lag: predictive r=-0.049 (p=0.009) vs reactive r=-0.034 (p=0.075)
+
+=== horse race: growth_w ~ z_qa + z_execqa + FE ===
+[ticker FE] n=2809: z_qa -0.691 (p=0.136) | z_execqa -0.288 (p=0.637)
+[ticker + quarter FE] n=2809: z_qa -0.351 (p=0.487) | z_execqa -0.426 (p=0.510)
