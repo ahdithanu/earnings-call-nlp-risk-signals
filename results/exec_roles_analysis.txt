@@ -1,0 +1,26 @@
+=== coverage (why this is a subsample view) ===
+rows total: 3025
+role_attributed (titled Executives: roster): 1226 (40.5%)
+CEO spoke in Q&A: 725; >= 200 tokens: 711
+CFO spoke in Q&A: 781; >= 200 tokens: 730
+
+regression sample (both roles >= 200 tokens, outcome present): 601 rows, 64 tickers, years 2013-2021
+
+=== who talks, who hedges ===
+CEO share of CEO+CFO Q&A words: median 71.7%
+CEO uncertainty density: median 0.614, mean 0.656
+CFO uncertainty density: median 0.626, mean 0.685
+corr(ceo density, cfo density): +0.278
+
+=== panel: growth_w ~ role density_z + FE (clustered by ticker) ===
+(benchmark row re-estimates the full-Q&A density on this same subsample)
+[ticker FE]
+  full-Q&A benchmark   coef = -1.562 pp per 1 SD (t=-1.52, p=0.128, n=599)
+  CEO answers only     coef = -1.680 pp per 1 SD (t=-1.75, p=0.080, n=599)
+  CFO answers only     coef = -1.029 pp per 1 SD (t=-0.89, p=0.374, n=599)
+  CEO + CFO jointly    CEO -1.589 (p=0.097) | CFO -0.862 (p=0.451)
+[ticker + quarter FE]
+  full-Q&A benchmark   coef = -1.236 pp per 1 SD (t=-1.43, p=0.153, n=599)
+  CEO answers only     coef = -1.300 pp per 1 SD (t=-1.91, p=0.056, n=599)
+  CFO answers only     coef = -1.156 pp per 1 SD (t=-0.99, p=0.324, n=599)
+  CEO + CFO jointly    CEO -1.189 (p=0.078) | CFO -1.029 (p=0.379)

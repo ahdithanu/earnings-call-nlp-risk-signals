@@ -14,7 +14,9 @@ scripts/inspect_dataset.py — 20,681 rows, one `train` split):
           src/qa_isolation.py additionally extracts executive-only answers
           (roster + prepared-remarks speaker attribution) for the _execqa
           metric scope; where attribution fails, _execqa columns are null
-          and qa_exec_isolated=False.
+          and qa_exec_isolated=False. Where the roster carries titles
+          (~40% of rows), src/exec_roles.py further splits exec speech by
+          role for the _ceo and _cfo scopes (role_attributed flag).
   Step 4  Negation-aware LM uncertainty counts (src/uncertainty.py) on the
           full transcript and on the Q&A section separately.
   Step 5  Forward EPS outcome (src/features.py). The dataset has no single-
@@ -40,6 +42,7 @@ os.environ.setdefault("HF_HUB_DISABLE_XET", "1")
 import pandas as pd
 from datasets import load_dataset
 
+from src.exec_roles import exec_qa_by_role
 from src.features import add_next_quarter_eps
 from src.lexicon import CONTROL_LOADERS, load_uncertainty_terms
 from src.qa_extract import extract_qa
@@ -125,11 +128,19 @@ def main() -> None:
         qa = extract_qa(transcript)
         iso = isolate_executive_qa(transcript)
         exec_qa = iso.text if iso.mode == "exec_turns" else None
+        # Role split (src/exec_roles.py) needs the ~40% of transcripts with
+        # a titled roster; elsewhere the _ceo/_cfo columns stay null.
+        by_role = exec_qa_by_role(transcript)
+        ceo_text = (by_role or {}).get("ceo") or None
+        cfo_text = (by_role or {}).get("cfo") or None
         row = (
-            {"qa_isolated": qa is not None, "qa_exec_isolated": exec_qa is not None}
+            {"qa_isolated": qa is not None, "qa_exec_isolated": exec_qa is not None,
+             "role_attributed": by_role is not None}
             | score(transcript, lexicon, "full")
             | score(qa, lexicon, "qa")
             | score(exec_qa, lexicon, "execqa")
+            | score(ceo_text, lexicon, "ceo")
+            | score(cfo_text, lexicon, "cfo")
         )
         for cat, lex in controls.items():
             row |= score_category(transcript, lex, cat, "full")
@@ -146,16 +157,24 @@ def main() -> None:
     density_cols += [f"{c}_density_qa" for c in controls]
     density_cols += [f"{c}_density_full" for c in controls]
     density_cols += [f"{c}_density_execqa" for c in controls]
+    role_count_cols = ["total_tokens", "uncertainty_count", "negation_excluded"]
     metrics = metrics.astype(
         {f"{c}_qa": "Int64" for c in count_cols}
         | {f"{c}_execqa": "Int64" for c in count_cols}
+        | {f"{c}_ceo": "Int64" for c in role_count_cols}
+        | {f"{c}_cfo": "Int64" for c in role_count_cols}
         | {c: "float64" for c in density_cols}
+        | {"uncertainty_density_ceo": "float64", "uncertainty_density_cfo": "float64"}
     )
     out = pd.concat([df[PASSTHROUGH_COLS], metrics], axis=1)
     print(f"qa isolated: {out['qa_isolated'].sum()}/{len(out)} "
           f"({out['qa_isolated'].mean() * 100:.1f}%)")
     print(f"exec-only qa isolated: {out['qa_exec_isolated'].sum()}/{len(out)} "
           f"({out['qa_exec_isolated'].mean() * 100:.1f}%)")
+    print(f"role attributed (titled roster): {out['role_attributed'].sum()}/{len(out)} "
+          f"({out['role_attributed'].mean() * 100:.1f}%); "
+          f"CEO text present: {out['total_tokens_ceo'].notna().sum()}, "
+          f"CFO text present: {out['total_tokens_cfo'].notna().sum()}")
     print(f"total negation-suppressed matches (full): "
           f"{out['negation_excluded_full'].sum()}")
 

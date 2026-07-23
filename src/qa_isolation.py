@@ -79,21 +79,19 @@ class ExecQAResult:
     n_exec_turns: int
 
 
-def isolate_executive_qa(transcript: str) -> ExecQAResult:
-    """Return only what executives said during the Q&A portion.
+def executive_qa_turns(transcript: str) -> tuple[list[tuple[str, str]], str]:
+    """Attributed executive turns in the Q&A: ([(speaker, words), ...], mode).
 
-    mode=="exec_turns" is the only success state. "no_qa_boundary" means
-    qa_extract found no Q&A start; "no_exec_attribution" means the Q&A was
-    found but no turn could be attributed to an executive. Callers must
-    treat both failure modes as missing (the plain full-Q&A metrics already
-    exist separately) and log their counts — never silently substitute the
-    whole transcript.
+    mode is "exec_turns" when at least one turn is attributed, else
+    "no_qa_boundary" / "no_exec_attribution" (empty turn list). Speakers are
+    normalized names, which downstream consumers (e.g. src/exec_roles.py)
+    can map to roster titles.
     """
     transcript = transcript.lstrip("﻿ \n")
 
     boundary = find_qa_start(transcript)
     if boundary is None:
-        return ExecQAResult(text="", mode="no_qa_boundary", n_exec_turns=0)
+        return [], "no_qa_boundary"
     qa_text = transcript[boundary:]
     prepared = transcript[:boundary]
 
@@ -107,7 +105,7 @@ def isolate_executive_qa(transcript: str) -> ExecQAResult:
     exec_surnames = {e.split()[-1] for e in execs if e}
     analyst_surnames = {a.split()[-1] for a in analysts if a}
 
-    exec_chunks = []
+    exec_turns = []
     for speaker, words in _split_turns(qa_text):
         if not speaker or speaker == "operator" or speaker in analysts:
             continue
@@ -117,10 +115,26 @@ def isolate_executive_qa(transcript: str) -> ExecQAResult:
             speaker.split()[-1] in exec_surnames
             and speaker.split()[-1] not in analyst_surnames
         ):
-            exec_chunks.append(words)
+            exec_turns.append((speaker, words))
 
-    if not exec_chunks:
-        return ExecQAResult(text="", mode="no_exec_attribution", n_exec_turns=0)
+    if not exec_turns:
+        return [], "no_exec_attribution"
+    return exec_turns, "exec_turns"
+
+
+def isolate_executive_qa(transcript: str) -> ExecQAResult:
+    """Return only what executives said during the Q&A portion.
+
+    mode=="exec_turns" is the only success state. "no_qa_boundary" means
+    qa_extract found no Q&A start; "no_exec_attribution" means the Q&A was
+    found but no turn could be attributed to an executive. Callers must
+    treat both failure modes as missing (the plain full-Q&A metrics already
+    exist separately) and log their counts — never silently substitute the
+    whole transcript.
+    """
+    turns, mode = executive_qa_turns(transcript)
     return ExecQAResult(
-        text=" ".join(exec_chunks), mode="exec_turns", n_exec_turns=len(exec_chunks)
+        text=" ".join(words for _, words in turns),
+        mode=mode,
+        n_exec_turns=len(turns),
     )
