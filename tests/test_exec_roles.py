@@ -37,8 +37,9 @@ def test_roster_titles_pairs():
 
 
 def test_split_by_role():
-    by_role = exec_qa_by_role(TRANSCRIPT)
+    by_role, source = exec_qa_by_role(TRANSCRIPT)
     assert by_role is not None
+    assert source == "roster"
     assert "Strategy answer" in by_role["ceo"]
     assert "Numbers answer" in by_role["cfo"]
     # prepared remarks stay out of every bucket
@@ -50,11 +51,52 @@ def test_split_by_role():
     assert "Divisional answer" in by_role["other"]
 
 
-def test_no_roster_returns_none():
+def test_no_roster_no_intro_returns_none():
     t = (
         "Alice Smith : Prepared remarks going on for a while here in the "
         "opening stretch of this particular call transcript for the test. "
         "Operator : We will now take our first question from Carl Fox. "
         "Carl Fox : Question? Alice Smith : Answer text."
     )
-    assert exec_qa_by_role(t) is None
+    assert exec_qa_by_role(t) == (None, None)
+
+
+# 2019+-style transcript: no roster, execs named in the IR intro prose.
+INTRO_TRANSCRIPT = (
+    "﻿ Operator : Good afternoon and welcome to the Acme earnings call. "
+    "I will now turn it over to Pat Kim, head of investor relations. "
+    "Pat Kim : Thank you. Joining me today are Jane Doe, our Chief "
+    "Executive Officer; and John Roe, our Chief Financial Officer. "
+    "Before we begin, the usual safe harbor disclaimers apply to all of it. "
+    "Jane Doe : Prepared remarks about the strong quarter we just had here. "
+    "John Roe : Detailed financials and the outlook for the year ahead now. "
+    "Operator : We will now take our first question from Amy Wu of BigBank. "
+    "Amy Wu : What is the risk outlook for the coming fiscal year, please? "
+    "Jane Doe : Strategy answer from the chief executive right here. "
+    "John Roe : Numbers answer from the finance chief right here."
+)
+
+
+def test_intro_prose_fallback():
+    from src.exec_roles import intro_titles
+
+    names = dict(intro_titles(INTRO_TRANSCRIPT))
+    assert "jane doe" in names and "john roe" in names
+
+    by_role, source = exec_qa_by_role(INTRO_TRANSCRIPT)
+    assert source == "intro"
+    assert "Strategy answer" in by_role["ceo"]
+    assert "Numbers answer" in by_role["cfo"]
+    assert "Prepared remarks" not in by_role["ceo"]
+
+
+def test_intro_title_first_order():
+    t = INTRO_TRANSCRIPT.replace(
+        "Joining me today are Jane Doe, our Chief "
+        "Executive Officer; and John Roe, our Chief Financial Officer.",
+        "Joining me today are our CEO Jane Doe and our CFO John Roe.",
+    )
+    by_role, source = exec_qa_by_role(t)
+    assert source == "intro"
+    assert "Strategy answer" in by_role["ceo"]
+    assert "Numbers answer" in by_role["cfo"]

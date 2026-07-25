@@ -42,10 +42,13 @@ def main() -> None:
     df = pd.read_parquet(PARQUET)
     n0 = len(df)
 
-    emit("=== coverage (why this is a subsample view) ===")
+    emit("=== coverage ===")
     emit(f"rows total: {n0}")
-    emit(f"role_attributed (titled Executives: roster): {int(df['role_attributed'].sum())} "
-         f"({df['role_attributed'].mean() * 100:.1f}%)")
+    emit(f"role_attributed: {int(df['role_attributed'].sum())} "
+         f"({df['role_attributed'].mean() * 100:.1f}%) — by source: "
+         f"{df['role_source'].value_counts(dropna=False).to_dict()}")
+    emit("(roster = 2013-2018 transcript format; intro = 2019+ format, roles "
+         "parsed from the IR intro prose)")
     for role in ("ceo", "cfo"):
         n_any = int(df[f"total_tokens_{role}"].notna().sum())
         n_enough = int((df[f"total_tokens_{role}"] >= MIN_ROLE_TOKENS).sum())
@@ -100,6 +103,23 @@ def main() -> None:
         emit(f"  {'CEO + CFO jointly':<20} CEO {fit.params['z_ceo']:+.3f} "
              f"(p={fit.pvalues['z_ceo']:.3f}) | CFO {fit.params['z_cfo']:+.3f} "
              f"(p={fit.pvalues['z_cfo']:.3f})")
+
+    # ---- by attribution source / era ---------------------------------------
+    # The two sources are also two transcript formats AND two eras, so this
+    # doubles as a stability check: does the role result hold in both halves?
+    emit("\n=== by attribution source (ticker FE) ===")
+    for source in ("roster", "intro"):
+        sub = df[df["role_source"] == source]
+        if len(sub) < 100:
+            emit(f"[{source}] skipped, only {len(sub)} rows")
+            continue
+        kws = dict(cov_type="cluster", cov_kwds={"groups": sub["ticker"]})
+        line = [f"[{source}: {len(sub)} rows, years "
+                f"{sub['year'].min()}-{sub['year'].max()}]"]
+        for var, label in [("z_ceo", "CEO"), ("z_cfo", "CFO")]:
+            fit = smf.ols(f"growth_w ~ {var} + C(ticker)", data=sub).fit(**kws)
+            line.append(f"{label} {fit.params[var]:+.3f} (p={fit.pvalues[var]:.3f})")
+        emit("  " + " | ".join(line))
 
     with open(OUT_TXT, "w", encoding="utf-8") as f:
         f.write(report.getvalue())

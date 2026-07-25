@@ -14,9 +14,10 @@ scripts/inspect_dataset.py — 20,681 rows, one `train` split):
           src/qa_isolation.py additionally extracts executive-only answers
           (roster + prepared-remarks speaker attribution) for the _execqa
           metric scope; where attribution fails, _execqa columns are null
-          and qa_exec_isolated=False. Where the roster carries titles
-          (~40% of rows), src/exec_roles.py further splits exec speech by
-          role for the _ceo and _cfo scopes (role_attributed flag).
+          and qa_exec_isolated=False. src/exec_roles.py further splits
+          exec speech by role for the _ceo/_cfo scopes, attributing roles
+          from the titled roster (2013-2018 format) or the IR intro prose
+          (2019+ format); role_attributed/role_source record coverage.
   Step 4  Negation-aware LM uncertainty counts (src/uncertainty.py) on the
           full transcript and on the Q&A section separately.
   Step 5  Forward EPS outcome (src/features.py). The dataset has no single-
@@ -128,14 +129,14 @@ def main() -> None:
         qa = extract_qa(transcript)
         iso = isolate_executive_qa(transcript)
         exec_qa = iso.text if iso.mode == "exec_turns" else None
-        # Role split (src/exec_roles.py) needs the ~40% of transcripts with
-        # a titled roster; elsewhere the _ceo/_cfo columns stay null.
-        by_role = exec_qa_by_role(transcript)
+        # Role split (src/exec_roles.py): titled roster (2013-2018 format)
+        # or IR intro prose (2019+ format); elsewhere _ceo/_cfo stay null.
+        by_role, role_source = exec_qa_by_role(transcript)
         ceo_text = (by_role or {}).get("ceo") or None
         cfo_text = (by_role or {}).get("cfo") or None
         row = (
             {"qa_isolated": qa is not None, "qa_exec_isolated": exec_qa is not None,
-             "role_attributed": by_role is not None}
+             "role_attributed": by_role is not None, "role_source": role_source}
             | score(transcript, lexicon, "full")
             | score(qa, lexicon, "qa")
             | score(exec_qa, lexicon, "execqa")
@@ -171,8 +172,9 @@ def main() -> None:
           f"({out['qa_isolated'].mean() * 100:.1f}%)")
     print(f"exec-only qa isolated: {out['qa_exec_isolated'].sum()}/{len(out)} "
           f"({out['qa_exec_isolated'].mean() * 100:.1f}%)")
-    print(f"role attributed (titled roster): {out['role_attributed'].sum()}/{len(out)} "
-          f"({out['role_attributed'].mean() * 100:.1f}%); "
+    src_counts = out["role_source"].value_counts(dropna=False).to_dict()
+    print(f"role attributed: {out['role_attributed'].sum()}/{len(out)} "
+          f"({out['role_attributed'].mean() * 100:.1f}%) — by source: {src_counts}; "
           f"CEO text present: {out['total_tokens_ceo'].notna().sum()}, "
           f"CFO text present: {out['total_tokens_cfo'].notna().sum()}")
     print(f"total negation-suppressed matches (full): "

@@ -1,15 +1,22 @@
 """Split executive Q&A speech by the speaker's role (CEO / CFO / IR / other).
 
-Role information exists only in the ``Executives:`` roster that ~40% of
-transcripts open with ("Didier Hirsch - SVP, CFO"); the speech turns
-themselves carry no titles. So this view is inherently partial: callers get
-None when no roster is parseable, and the feature pipeline records that in
-a ``role_attributed`` flag rather than pretending full coverage.
+The speech turns carry no titles, so roles come from two header sources,
+tried in order:
+  1. the ``Executives: Name - Title`` roster — present in ~90% of the
+     2013-2018 transcripts and essentially absent from 2019 on (the
+     dataset's transcript source changed format);
+  2. the IR intro prose of the later format ("joining me today are Jane
+     Doe, our Chief Executive Officer, and John Roe, our CFO"), parsed by
+     ``intro_titles``.
+The feature pipeline records which source attributed a row (role_source)
+and callers get None when neither works — partial coverage is reported,
+never papered over.
 
-Turn speakers are matched to roster names exactly first, then by surname
-(roster may say "D. Cook" while turns say "Tim Cook"); a surname shared by
-two rostered executives with different roles is treated as unmatchable
-rather than guessed.
+Turn speakers are matched to attributed names exactly first, then by
+surname (a roster may say "D. Cook" while turns say "Tim Cook"); a surname
+carrying two different roles is treated as unmatchable rather than guessed.
+A junk (name, title) pair from prose parsing is harmless unless it collides
+with a real Q&A speaker's surname, which the ambiguity rule also catches.
 """
 
 import re
@@ -80,20 +87,67 @@ def role_of_title(title: str) -> str:
     return ROLE_OTHER
 
 
-def exec_qa_by_role(transcript: str) -> dict[str, str] | None:
-    """Executive Q&A text grouped by role, or None when unattributable.
+# Title phrases the intro-prose parser anchors on. Only the roles we score
+# (plus IR, which helps disambiguation) — prose is too noisy for a long tail.
+_INTRO_TITLE_RE = re.compile(
+    r"(?:president\s+and\s+)?chief\s+executive\s+officer|\bceo\b"
+    r"|(?:executive\s+vice\s+president\s+and\s+)?chief\s+financial\s+officer|\bcfo\b"
+    r"|investor\s+relations",
+    re.IGNORECASE,
+)
+_INTRO_NAME = rf"{_NAME_TOKEN}(?:\s+{_NAME_TOKEN}){{1,2}}"
+# name-first: "... Jane Doe, our Chief Executive Officer" — a name, a comma,
+# then at most a few filler words before the title phrase
+_NAME_BEFORE_RE = re.compile(
+    rf"({_INTRO_NAME})\s*,\s*(?:[\w'’\-]+\s+){{0,4}}$", re.UNICODE
+)
+# title-first: "... our CEO, Jane Doe" / "CEO Jane Doe"
+_NAME_AFTER_RE = re.compile(rf"^\s*,?\s*({_INTRO_NAME})", re.UNICODE)
 
-    Returns {"ceo": ..., "cfo": ..., "ir": ..., "other": ...} (empty string
-    for a role that never speaks). None when the transcript has no parseable
-    roster or executive turns couldn't be isolated at all — callers must
-    treat that as missing, not as zero.
+
+def intro_titles(transcript: str) -> list[tuple[str, str]]:
+    """(normalized name, title phrase) pairs parsed from the IR intro prose.
+
+    Used for transcripts with no ``Executives:`` roster (the 2019+ format).
+    Anchors on CEO/CFO/IR title phrases in the first ~4,000 characters and
+    takes the adjacent capitalized name — either "Name, our <title>" or
+    "<title>[,] Name". Historical mentions ("then-CEO Steve Jobs") can slip
+    through; they are harmless downstream because bucketing only ever
+    applies to speakers already attributed as executives of THIS call.
+    """
+    head = transcript.lstrip("﻿ \n")[:4000]
+    pairs = []
+    for m in _INTRO_TITLE_RE.finditer(head):
+        title = m.group(0)
+        before = head[max(0, m.start() - 80):m.start()]
+        after = head[m.end():m.end() + 80]
+        mb = _NAME_BEFORE_RE.search(before)
+        ma = _NAME_AFTER_RE.match(after)
+        name = mb.group(1) if mb else (ma.group(1) if ma else None)
+        if name:
+            pairs.append((_norm(name), title))
+    return pairs
+
+
+def exec_qa_by_role(transcript: str) -> tuple[dict[str, str] | None, str | None]:
+    """Executive Q&A text grouped by role: (buckets, source).
+
+    buckets is {"ceo": ..., "cfo": ..., "ir": ..., "other": ...} (empty
+    string for a role that never speaks) and source is "roster" or "intro"
+    depending on which header form attributed the roles. (None, None) when
+    neither yields (name, title) pairs or executive turns couldn't be
+    isolated at all — callers must treat that as missing, not as zero.
     """
     pairs = roster_titles(transcript)
+    source = "roster"
     if not pairs:
-        return None
+        pairs = intro_titles(transcript)
+        source = "intro"
+    if not pairs:
+        return None, None
     turns, mode = executive_qa_turns(transcript)
     if mode != "exec_turns":
-        return None
+        return None, None
 
     full_name_role = {}
     surname_role: dict[str, str] = {}
@@ -116,4 +170,4 @@ def exec_qa_by_role(transcript: str) -> dict[str, str] | None:
         # an exec turn with no roster match (e.g. exec absent from a stale
         # roster) still counted as executive speech -> "other"
         buckets[role or ROLE_OTHER].append(words)
-    return {role: " ".join(chunks) for role, chunks in buckets.items()}
+    return {role: " ".join(chunks) for role, chunks in buckets.items()}, source
