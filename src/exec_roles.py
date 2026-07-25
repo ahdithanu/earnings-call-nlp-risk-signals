@@ -23,6 +23,28 @@ import re
 
 from src.qa_isolation import _norm, executive_qa_turns
 
+# Title words that regex name-capture sometimes swallows ("Founder and CEO
+# Ken Xie" -> "Founder"; "Executive Chairman" -> "Chairman"). Stripped from
+# candidate names; a candidate with nothing left is rejected. Validated
+# against the 2018/2019 boundary-continuity check.
+_NAME_STOPWORDS = frozenset({
+    "founder", "chairman", "chairwoman", "officer", "president", "chief",
+    "executive", "vice", "senior", "director", "general", "counsel", "head",
+    "investor", "relations", "co", "interim", "group", "corporate",
+})
+
+
+def _clean_name(name: str) -> str | None:
+    """Drop title stopwords from a candidate name; None if nothing remains.
+
+    Trailing single-letter tokens are possessive debris ("Ken Xie's" ->
+    "ken xie s"), not initials — leading initials ("D. Cook") are kept.
+    """
+    tokens = [t for t in name.split() if t not in _NAME_STOPWORDS]
+    while tokens and len(tokens[-1]) == 1:
+        tokens.pop()
+    return " ".join(tokens) if tokens else None
+
 ROLE_CEO = "ceo"
 ROLE_CFO = "cfo"
 ROLE_IR = "ir"
@@ -61,7 +83,7 @@ def roster_titles(transcript: str) -> list[tuple[str, str]]:
     for i, mm in enumerate(matches):
         end = matches[i + 1].start() if i + 1 < len(matches) else len(block)
         title = block[mm.end():end].strip(" ,;")
-        name = _norm(mm.group(1))
+        name = _clean_name(_norm(mm.group(1)))
         if name:
             pairs.append((name, title))
     return pairs
@@ -123,9 +145,10 @@ def intro_titles(transcript: str) -> list[tuple[str, str]]:
         after = head[m.end():m.end() + 80]
         mb = _NAME_BEFORE_RE.search(before)
         ma = _NAME_AFTER_RE.match(after)
-        name = mb.group(1) if mb else (ma.group(1) if ma else None)
+        raw = mb.group(1) if mb else (ma.group(1) if ma else None)
+        name = _clean_name(_norm(raw)) if raw else None
         if name:
-            pairs.append((_norm(name), title))
+            pairs.append((name, title))
     return pairs
 
 

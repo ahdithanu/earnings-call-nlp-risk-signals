@@ -1,0 +1,16 @@
+=== role-name continuity across the 2018/2019 format boundary ===
+comparable ticker-roles: 108
+surname continuity: 92.6%
+
+mismatches (genuine transitions or parser artifacts, triage manually):
+ticker role   pre2019 post2019  match
+   ACN  ceo  nanterme  rowland  False
+  FTNT  ceo       xie fortinet  False
+  FTNT  cfo     matto   jensen  False
+  INTU  ceo     smith goodarzi  False
+  LRCX  ceo   anstice   archer  False
+    ON  cfo   guttman  gutmann  False
+   STX  cfo    mosley   romano  False
+   TDY  ceo mehrabian pichelli  False
+
+known-genuine CEO transitions in this window: ACN (Nanterme->Rowland), INTU (Smith->Goodarzi), LRCX (Anstice->Archer), TDY (Mehrabian->Pichelli); FTNT and STX changed CFOs. ON's 'guttman'/'gutmann' is a transcript spelling variant of the same person.
