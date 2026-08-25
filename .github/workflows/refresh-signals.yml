@@ -5,7 +5,7 @@ name: Refresh recent signals
 # the explorer data, and (if anything changed) commits and redeploys.
 #
 # It deliberately does NOT rebuild the validated panel
-# (data/processed/tech_uncertainty_features.parquet): that comes from a frozen
+# (data/processed/sp500_uncertainty_features.parquet): that comes from a frozen
 # dataset and is the project's fixed, EPS-bearing backbone, kept under manual
 # control. The cron only advances the recent, density-only layer that sits
 # beyond the panel's watermark — exactly the two-layer split the pipeline is

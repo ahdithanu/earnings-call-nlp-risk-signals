@@ -13,7 +13,7 @@ are isolated and long enough), with the same winsorization, z-scoring, FE
 specs, and clustered SEs as the main analysis. A final horse-race puts both
 z-scored densities in one regression to see which dominates.
 
-Reads data/processed/tech_uncertainty_features.parquet and writes
+Reads data/processed/sp500_uncertainty_features.parquet and writes
 results/execqa_robustness.txt.
 """
 
@@ -23,7 +23,7 @@ import pandas as pd
 import statsmodels.formula.api as smf
 from scipy import stats
 
-PARQUET = "data/processed/tech_uncertainty_features.parquet"
+PARQUET = "data/processed/sp500_uncertainty_features.parquet"
 OUT_TXT = "results/execqa_robustness.txt"
 
 # Same thresholds as the main analysis; the token floor applies to BOTH

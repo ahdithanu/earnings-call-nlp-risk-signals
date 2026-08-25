@@ -1,6 +1,6 @@
 """Extend the explorer with recent quarters (2025Q2+) from a live source.
 
-The validated panel (data/processed/tech_uncertainty_features.parquet, from
+The validated panel (data/processed/sp500_uncertainty_features.parquet, from
 glopardo/sp500-earnings-transcripts) ends at 2025Q1. This script appends
 newer company-quarters scored from Rogersurf/earnings-call-transcripts,
 which runs through 2026, so the interactive explorer shows a current
@@ -44,7 +44,7 @@ from src.lexicon import load_uncertainty_terms
 from src.qa_extract import extract_qa
 from src.uncertainty import count_uncertainty
 
-PANEL = "data/processed/tech_uncertainty_features.parquet"
+PANEL = "data/processed/sp500_uncertainty_features.parquet"
 RECENT_DATASET = "Rogersurf/earnings-call-transcripts"
 OUT = "data/processed/recent_uncertainty_signals.parquet"
 MIN_QA_TOKENS = 500

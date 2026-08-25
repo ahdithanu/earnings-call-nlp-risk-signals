@@ -20,7 +20,7 @@ Writes results/latest_uncertainty_signals.csv, most-elevated hedging first.
 
 import pandas as pd
 
-PARQUET = "data/processed/tech_uncertainty_features.parquet"
+PARQUET = "data/processed/sp500_uncertainty_features.parquet"
 OUT_CSV = "results/latest_uncertainty_signals.csv"
 
 MIN_QA_TOKENS = 500

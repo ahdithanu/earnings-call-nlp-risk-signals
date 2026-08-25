@@ -1,6 +1,6 @@
 """Fetch post-earnings-call price drift for the tech panel (v2: price outcomes).
 
-For every earnings call in data/processed/tech_uncertainty_features.parquet,
+For every earnings call in data/processed/sp500_uncertainty_features.parquet,
 pulls the company's daily closes from Financial Modeling Prep and computes the
 post-call return over two horizons (src/price_drift.py). Writes
 data/processed/price_outcomes.parquet.
@@ -21,7 +21,7 @@ import requests
 
 from src.price_drift import drift_outcomes
 
-PANEL = "data/processed/tech_uncertainty_features.parquet"
+PANEL = "data/processed/sp500_uncertainty_features.parquet"
 OUT = "data/processed/price_outcomes.parquet"
 BASE = "https://financialmodelingprep.com/stable/historical-price-eod/light"
 FROM_DATE = "2013-01-01"

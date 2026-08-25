@@ -18,7 +18,7 @@ import os
 import pandas as pd
 import statsmodels.formula.api as smf
 
-PANEL = "data/processed/tech_uncertainty_features.parquet"
+PANEL = "data/processed/sp500_uncertainty_features.parquet"
 PRICES = "data/processed/price_outcomes.parquet"
 OUT_TXT = "results/price_drift.txt"
 MIN_QA_TOKENS = 500

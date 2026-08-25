@@ -5,14 +5,14 @@ the panel spec on each role's uncertainty density. The tone literature
 (e.g. CFO-vs-CEO tone studies) suggests CFO language is the more
 informative channel; this tests that on our panel.
 
-Coverage caveat, stated up front: roles come from the ``Executives:``
-roster that only ~40% of transcripts carry, and a call only enters the
-regression sample when BOTH the CEO and the CFO spoke enough in its Q&A.
-This is a subsample view, not a full-panel result; the report includes the
-full-Q&A benchmark re-estimated on the SAME subsample so the role effects
-are compared against a like-for-like baseline, not the headline numbers.
+Coverage caveat, stated up front: roles come from the roster or intro-prose
+headers (src/exec_roles.py; ~98% of rows attribute), and a call only enters
+the regression sample when BOTH the CEO and the CFO spoke enough in its
+Q&A. That still trims the panel, so the report includes the full-Q&A
+benchmark re-estimated on the SAME subsample so the role effects are
+compared against a like-for-like baseline, not the headline numbers.
 
-Reads data/processed/tech_uncertainty_features.parquet and writes
+Reads data/processed/sp500_uncertainty_features.parquet and writes
 results/exec_roles_analysis.txt.
 """
 
@@ -21,7 +21,7 @@ import io
 import pandas as pd
 import statsmodels.formula.api as smf
 
-PARQUET = "data/processed/tech_uncertainty_features.parquet"
+PARQUET = "data/processed/sp500_uncertainty_features.parquet"
 OUT_TXT = "results/exec_roles_analysis.txt"
 
 # Role texts are shorter than the whole Q&A (a CFO may answer only a few

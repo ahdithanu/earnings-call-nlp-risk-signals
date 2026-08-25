@@ -22,7 +22,7 @@ import json
 import numpy as np
 import pandas as pd
 
-PARQUET = "data/processed/tech_uncertainty_features.parquet"
+PARQUET = "data/processed/sp500_uncertainty_features.parquet"
 RECENT = "data/processed/recent_uncertainty_signals.parquet"
 PANEL_STATS = "results/panel_stats.json"
 TEMPLATE = "web/index.template.html"

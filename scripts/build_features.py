@@ -1,13 +1,13 @@
-"""Steps 2-6: build data/processed/tech_uncertainty_features.parquet.
+"""Steps 2-6: build data/processed/sp500_uncertainty_features.parquet.
 
 Pipeline over glopardo/sp500-earnings-transcripts (schema confirmed by
 scripts/inspect_dataset.py — 20,681 rows, one `train` split):
 
   Step 2  Filter to the universe defined in src/universe.py
-          (select_universe): GICS Information Technology plus the mega-caps
-          GICS files elsewhere (GOOGL, META, AMZN; GOOG excluded as a
-          duplicate share class). That module is the single place to change
-          which companies are in.
+          (select_universe): the full S&P 500 — all 11 GICS sectors —
+          minus dual-share-class duplicates (GOOG, NWS carry the same
+          calls as GOOGL, NWSA). That module is the single place to
+          change which companies are in.
   Step 3  Isolate the Q&A section of each transcript (src/qa_extract.py).
           ~98% of tech transcripts split cleanly; the rest keep only
           full-transcript metrics and qa_isolated=False. Within the Q&A,
@@ -29,7 +29,7 @@ scripts/inspect_dataset.py — 20,681 rows, one `train` split):
           and are dropped; duplicate ticker-quarters keep the longest
           transcript.
   Step 6  Write the feature table (ids + metrics, no transcript text) to
-          data/processed/tech_uncertainty_features.parquet.
+          data/processed/sp500_uncertainty_features.parquet.
 
 Requires network access to huggingface.co on first run (cached after).
 """
@@ -52,7 +52,7 @@ from src.uncertainty import count_uncertainty
 from src.universe import select_universe
 
 DATASET = "glopardo/sp500-earnings-transcripts"
-OUT_PATH = "data/processed/tech_uncertainty_features.parquet"
+OUT_PATH = "data/processed/sp500_uncertainty_features.parquet"
 
 PASSTHROUGH_COLS = [
     "ticker", "company", "sector", "industry", "cik",
@@ -105,9 +105,10 @@ def main() -> None:
     # Step 2: universe filter (src/universe.py is the single source of truth)
     # + panel-key hygiene.
     df = df[select_universe(df)].copy()
-    n_tech = len(df)
+    n_universe = len(df)
     df = df.dropna(subset=["year", "quarter"])
-    print(f"tech rows: {n_tech} ({n_tech - len(df)} dropped for missing year/quarter)")
+    print(f"universe rows: {n_universe} "
+          f"({n_universe - len(df)} dropped for missing year/quarter)")
     df["year"] = df["year"].astype(int)
     df["quarter"] = df["quarter"].astype(int)
 

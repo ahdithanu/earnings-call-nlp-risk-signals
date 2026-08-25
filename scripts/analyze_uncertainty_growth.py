@@ -7,7 +7,7 @@ context test (do high-growth companies show more-positive correlations
 than mature ones?), a ticker fixed-effects panel regression with
 ticker-clustered standard errors, and a lead-lag comparison.
 
-Reads data/processed/tech_uncertainty_features.parquet (built by
+Reads data/processed/sp500_uncertainty_features.parquet (built by
 scripts/build_features.py) and writes:
   results/per_ticker_correlations.csv
   results/uncertainty_growth_analysis.txt
@@ -28,7 +28,7 @@ import pandas as pd
 import statsmodels.formula.api as smf
 from scipy import stats
 
-PARQUET = "data/processed/tech_uncertainty_features.parquet"
+PARQUET = "data/processed/sp500_uncertainty_features.parquet"
 OUT_CSV = "results/per_ticker_correlations.csv"
 OUT_TXT = "results/uncertainty_growth_analysis.txt"
 OUT_STATS = "results/panel_stats.json"

@@ -41,7 +41,7 @@ to explain the result away.
 import pandas as pd
 import statsmodels.formula.api as smf
 
-PARQUET = "data/processed/tech_uncertainty_features.parquet"
+PARQUET = "data/processed/sp500_uncertainty_features.parquet"
 OUT_CSV = "results/ttm_vs_single_quarter.csv"
 
 MIN_QA_TOKENS = 500
