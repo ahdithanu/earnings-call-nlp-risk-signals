@@ -1,13 +1,13 @@
 === sample ===
-rows: 2847 of 3025 (qa_isolated, total_tokens_qa>=500, growth outcome present)
-tickers: 72, years 2013-2024
-growth winsorized at [-50.2%, 99.7%]
+rows: 19081 of 20350 (qa_isolated, total_tokens_qa>=500, growth outcome present)
+tickers: 493, years 2013-2024
+growth winsorized at [-62.4%, 103.5%]
 
 === per-ticker correlations (density_qa vs next-quarter TTM EPS growth) ===
-tickers with >= 12 usable quarters: 71
-pearson r:  mean -0.061, median -0.070, positive 24/71
-spearman:   mean -0.066, median -0.065, positive 26/71
-significant at p<0.05 (pearson): 4/71 (~3.6 expected by chance)
+tickers with >= 12 usable quarters: 480
+pearson r:  mean -0.045, median -0.051, positive 179/480
+spearman:   mean -0.043, median -0.045, positive 195/480
+significant at p<0.05 (pearson): 45/480 (~24.0 expected by chance)
 
 README focus tickers (README claimed NVDA r=+0.959, MSFT r=-0.584 on ~3 quarters):
 ticker  n_quarters  pearson_r  pearson_p  spearman_rho  spearman_p  mean_growth  median_growth
@@ -15,39 +15,39 @@ ticker  n_quarters  pearson_r  pearson_p  spearman_rho  spearman_p  mean_growth 
   NVDA          43     -0.216     +0.165        -0.276      +0.073      +13.530        +13.362
 
 === growth-context test ===
-spearman(per-ticker median growth, per-ticker pearson r) = -0.049 (p=0.684)
-high-growth half: mean r -0.079 | mature half: mean r -0.044
+spearman(per-ticker median growth, per-ticker pearson r) = -0.070 (p=0.126)
+high-growth half: mean r -0.054 | mature half: mean r -0.035
 
 === panel regression: growth_w ~ density_z + FE, SE clustered by ticker ===
-ticker FE: coef on density_z = -0.882 pp per 1 SD (t=-3.12, p=0.002, n=2847)
-ticker + quarter FE: coef on density_z = -0.652 pp per 1 SD (t=-2.42, p=0.015, n=2847)
+ticker FE: coef on density_z = -0.550 pp per 1 SD (t=-3.87, p=0.000, n=19081)
+ticker + quarter FE: coef on density_z = -0.287 pp per 1 SD (t=-2.08, p=0.038, n=19081)
 
 === lead-lag (within-ticker density_z) ===
-growth into current quarter (reactive): r = -0.043 (p=0.024, n=2775)
-growth into next quarter (predictive): r = -0.055 (p=0.004, n=2847)
+growth into current quarter (reactive): r = -0.031 (p=0.000, n=18588)
+growth into next quarter (predictive): r = -0.031 (p=0.000, n=19081)
 
 === tone-category controls (does uncertainty survive controlling for other LM tone?) ===
-corr(uncertainty_z, negative_z): +0.127
-corr(uncertainty_z, positive_z): -0.151
-corr(uncertainty_z, litigious_z): +0.034
-corr(uncertainty_z, constraining_z): +0.038
+corr(uncertainty_z, negative_z): +0.136
+corr(uncertainty_z, positive_z): -0.152
+corr(uncertainty_z, litigious_z): +0.051
+corr(uncertainty_z, constraining_z): +0.097
 
-[ticker FE] n=2847
-  uncertainty, no control:  -0.882 pp (t=-3.12, p=0.002)
-  + negative     control:  -0.686 pp (t=-2.49, p=0.013) | negative coef -1.533 (p=0.000)
-  + positive     control:  -0.735 pp (t=-2.60, p=0.009) | positive coef +0.969 (p=0.016)
-  + litigious    control:  -0.886 pp (t=-3.16, p=0.002) | litigious coef +0.108 (p=0.773)
-  + constraining control:  -0.883 pp (t=-3.11, p=0.002) | constraining coef +0.034 (p=0.920)
-  + ALL 4 jointly:         -0.581 pp (t=-2.08, p=0.038)
+[ticker FE] n=19081
+  uncertainty, no control:  -0.550 pp (t=-3.87, p=0.000)
+  + negative     control:  -0.319 pp (t=-2.29, p=0.022) | negative coef -1.703 (p=0.000)
+  + positive     control:  -0.377 pp (t=-2.62, p=0.009) | positive coef +1.140 (p=0.000)
+  + litigious    control:  -0.536 pp (t=-3.80, p=0.000) | litigious coef -0.276 (p=0.039)
+  + constraining control:  -0.533 pp (t=-3.68, p=0.000) | constraining coef -0.182 (p=0.229)
+  + ALL 4 jointly:         -0.187 pp (t=-1.30, p=0.193)
 
-[ticker + quarter FE] n=2847
-  uncertainty, no control:  -0.652 pp (t=-2.42, p=0.015)
-  + negative     control:  -0.538 pp (t=-2.03, p=0.042) | negative coef -1.209 (p=0.000)
-  + positive     control:  -0.553 pp (t=-2.03, p=0.043) | positive coef +0.746 (p=0.050)
-  + litigious    control:  -0.657 pp (t=-2.45, p=0.014) | litigious coef +0.146 (p=0.707)
-  + constraining control:  -0.656 pp (t=-2.42, p=0.016) | constraining coef +0.137 (p=0.683)
-  + ALL 4 jointly:         -0.467 pp (t=-1.73, p=0.083)
+[ticker + quarter FE] n=19081
+  uncertainty, no control:  -0.287 pp (t=-2.08, p=0.038)
+  + negative     control:  -0.166 pp (t=-1.20, p=0.228) | negative coef -1.144 (p=0.000)
+  + positive     control:  -0.177 pp (t=-1.25, p=0.212) | positive coef +0.816 (p=0.000)
+  + litigious    control:  -0.274 pp (t=-1.99, p=0.046) | litigious coef -0.258 (p=0.053)
+  + constraining control:  -0.270 pp (t=-1.92, p=0.055) | constraining coef -0.218 (p=0.139)
+  + ALL 4 jointly:         -0.067 pp (t=-0.47, p=0.638)
 
 === hedging momentum (level vs. quarter-over-quarter change) ===
-[ticker FE] n=2716: level -1.387 (p=0.008) | momentum +0.577 (p=0.060)
-[ticker + quarter FE] n=2716: level -1.128 (p=0.026) | momentum +0.567 (p=0.053)
+[ticker FE] n=18170: level -0.667 (p=0.004) | momentum +0.063 (p=0.642)
+[ticker + quarter FE] n=18170: level -0.359 (p=0.111) | momentum +0.023 (p=0.863)

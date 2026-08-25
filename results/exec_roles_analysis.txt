@@ -1,31 +1,31 @@
 === coverage ===
-rows total: 3025
-role_attributed: 2951 (97.6%) — by source: {'intro': 1725, 'roster': 1226, nan: 74}
+rows total: 20350
+role_attributed: 19453 (95.6%) — by source: {'intro': 11757, 'roster': 7696, nan: 897}
 (roster = 2013-2018 transcript format; intro = 2019+ format, roles parsed from the IR intro prose)
-CEO spoke in Q&A: 2114; >= 200 tokens: 2088
-CFO spoke in Q&A: 2152; >= 200 tokens: 2028
+CEO spoke in Q&A: 14052; >= 200 tokens: 13818
+CFO spoke in Q&A: 14130; >= 200 tokens: 13036
 
-regression sample (both roles >= 200 tokens, outcome present): 1619 rows, 68 tickers, years 2013-2024
+regression sample (both roles >= 200 tokens, outcome present): 10419 rows, 481 tickers, years 2013-2024
 
 === who talks, who hedges ===
-CEO share of CEO+CFO Q&A words: median 71.1%
-CEO uncertainty density: median 0.564, mean 0.616
-CFO uncertainty density: median 0.629, mean 0.692
-corr(ceo density, cfo density): +0.221
+CEO share of CEO+CFO Q&A words: median 68.3%
+CEO uncertainty density: median 0.642, mean 0.683
+CFO uncertainty density: median 0.712, mean 0.769
+corr(ceo density, cfo density): +0.192
 
 === panel: growth_w ~ role density_z + FE (clustered by ticker) ===
 (benchmark row re-estimates the full-Q&A density on this same subsample)
 [ticker FE]
-  full-Q&A benchmark   coef = -0.982 pp per 1 SD (t=-2.18, p=0.029, n=1617)
-  CEO answers only     coef = -0.888 pp per 1 SD (t=-2.26, p=0.024, n=1617)
-  CFO answers only     coef = -0.894 pp per 1 SD (t=-2.03, p=0.043, n=1617)
-  CEO + CFO jointly    CEO -0.828 (p=0.028) | CFO -0.834 (p=0.051)
+  full-Q&A benchmark   coef = -0.452 pp per 1 SD (t=-2.53, p=0.011, n=10413)
+  CEO answers only     coef = -0.573 pp per 1 SD (t=-3.33, p=0.001, n=10413)
+  CFO answers only     coef = -0.168 pp per 1 SD (t=-1.06, p=0.287, n=10413)
+  CEO + CFO jointly    CEO -0.562 (p=0.001) | CFO -0.112 (p=0.469)
 [ticker + quarter FE]
-  full-Q&A benchmark   coef = -0.567 pp per 1 SD (t=-1.42, p=0.156, n=1617)
-  CEO answers only     coef = -0.689 pp per 1 SD (t=-2.12, p=0.034, n=1617)
-  CFO answers only     coef = -0.752 pp per 1 SD (t=-1.79, p=0.074, n=1617)
-  CEO + CFO jointly    CEO -0.645 (p=0.038) | CFO -0.713 (p=0.083)
+  full-Q&A benchmark   coef = -0.213 pp per 1 SD (t=-1.19, p=0.233, n=10413)
+  CEO answers only     coef = -0.348 pp per 1 SD (t=-2.08, p=0.038, n=10413)
+  CFO answers only     coef = -0.076 pp per 1 SD (t=-0.51, p=0.609, n=10413)
+  CEO + CFO jointly    CEO -0.344 (p=0.038) | CFO -0.048 (p=0.744)
 
 === by attribution source (ticker FE) ===
-  [roster: 600 rows, years 2013-2021] | CEO -1.562 (p=0.090) | CFO -1.001 (p=0.357)
-  [intro: 1017 rows, years 2014-2024] | CEO -0.413 (p=0.344) | CFO -0.706 (p=0.188)
+  [roster: 3776 rows, years 2013-2024] | CEO -0.507 (p=0.073) | CFO -0.054 (p=0.831)
+  [intro: 6637 rows, years 2013-2024] | CEO -0.686 (p=0.007) | CFO -0.203 (p=0.399)
