@@ -74,6 +74,8 @@ docker pull ghcr.io/ahdithanu/earnings-signals-api:latest   # published on versi
 
 Point the explorer's `signals-api` meta tag at a deployed instance and the site gains a live "score your own text" section (it stays fully static otherwise).
 
+**AWS deployment** is fully codified: [`infra/aws/bootstrap.yaml`](infra/aws/bootstrap.yaml) (ECR + a GitHub-OIDC deploy role, applied once in CloudFormation — no AWS keys anywhere) and the [`Deploy to AWS`](.github/workflows/deploy-aws.yml) workflow, which builds to ECR and runs the service on App Runner with `/healthz` health checks. Walkthrough: [`docs/DEPLOY_AWS.md`](docs/DEPLOY_AWS.md).
+
 ## Methodology
 
 1. **Data:** [glopardo/sp500-earnings-transcripts](https://huggingface.co/datasets/glopardo/sp500-earnings-transcripts) — 20,681 S&P 500 earnings-call transcripts with quarter keys, GICS sector, and trailing/forward 12-month EPS. The panel is the full S&P 500 — all 11 GICS sectors, 494 tickers, 20,350 deduplicated company-quarters (GOOG and NWS dropped as duplicate share classes carrying the same calls as GOOGL/NWSA). The universe is defined in one place (`earnings_signals/universe.py`); the site's headline counts are derived from the data, so changing the universe is a single edit plus a rerun — no hardcoded numbers to chase.

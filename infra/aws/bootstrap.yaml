@@ -1,0 +1,143 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  One-time bootstrap for deploying the earnings-signals scoring API to AWS
+  App Runner from GitHub Actions, with no long-lived AWS keys anywhere:
+  an ECR repository for the image, a GitHub OIDC identity provider, a
+  deploy role only this repository's workflows can assume, and the access
+  role App Runner uses to pull from ECR. Deploys happen in
+  .github/workflows/deploy-aws.yml; this stack is applied once from the
+  AWS console (CloudFormation -> Create stack -> Upload template).
+
+Parameters:
+  GitHubRepository:
+    Type: String
+    Default: ahdithanu/earnings-call-nlp-risk-signals
+    Description: owner/repo allowed to assume the deploy role via OIDC.
+  ServiceName:
+    Type: String
+    Default: earnings-signals-api
+    Description: Name used for the ECR repository and App Runner service.
+
+Resources:
+  ImageRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Ref ServiceName
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      LifecyclePolicy:
+        # keep the registry tidy: untagged layers from superseded pushes
+        # expire after two weeks
+        LifecyclePolicyText: |
+          {
+            "rules": [
+              {
+                "rulePriority": 1,
+                "description": "expire untagged images after 14 days",
+                "selection": {
+                  "tagStatus": "untagged",
+                  "countType": "sinceImagePushed",
+                  "countUnit": "days",
+                  "countNumber": 14
+                },
+                "action": { "type": "expire" }
+              }
+            ]
+          }
+
+  GitHubOidcProvider:
+    Type: AWS::IAM::OIDCProvider
+    Properties:
+      Url: https://token.actions.githubusercontent.com
+      ClientIdList:
+        - sts.amazonaws.com
+      # GitHub's published root thumbprints; AWS additionally validates the
+      # provider's trust chain, so these are belt-and-suspenders.
+      ThumbprintList:
+        - 6938fd4d98bab03faadb97b34396831e3780aea1
+        - 1c58a3a8518e8759bf075b76b750d4f2df264fcd
+
+  DeployRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${ServiceName}-github-deploy"
+      Description: Assumed by this repository's GitHub Actions via OIDC to push images and manage the App Runner service.
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: !Ref GitHubOidcProvider
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                token.actions.githubusercontent.com:aud: sts.amazonaws.com
+              StringLike:
+                token.actions.githubusercontent.com:sub: !Sub "repo:${GitHubRepository}:*"
+      Policies:
+        - PolicyName: push-image-and-deploy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: EcrLogin
+                Effect: Allow
+                Action: ecr:GetAuthorizationToken
+                Resource: "*"
+              - Sid: EcrPush
+                Effect: Allow
+                Action:
+                  - ecr:BatchCheckLayerAvailability
+                  - ecr:BatchGetImage
+                  - ecr:GetDownloadUrlForLayer
+                  - ecr:InitiateLayerUpload
+                  - ecr:UploadLayerPart
+                  - ecr:CompleteLayerUpload
+                  - ecr:PutImage
+                Resource: !GetAtt ImageRepository.Arn
+              - Sid: ManageAppRunner
+                Effect: Allow
+                Action:
+                  - apprunner:CreateService
+                  - apprunner:UpdateService
+                  - apprunner:StartDeployment
+                  - apprunner:DescribeService
+                  - apprunner:ListServices
+                  - apprunner:ListOperations
+                  - apprunner:TagResource
+                # App Runner service ARNs contain a generated suffix that does
+                # not exist until first deploy, so this statement is
+                # service-wide; every other statement is resource-scoped.
+                Resource: "*"
+              - Sid: PassEcrAccessRoleToAppRunner
+                Effect: Allow
+                Action: iam:PassRole
+                Resource: !GetAtt AppRunnerEcrAccessRole.Arn
+                Condition:
+                  StringEquals:
+                    iam:PassedToService: build.apprunner.amazonaws.com
+
+  AppRunnerEcrAccessRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${ServiceName}-apprunner-ecr-access"
+      Description: Lets App Runner pull the service image from the private ECR repository.
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: build.apprunner.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSAppRunnerServicePolicyForECRAccess
+
+Outputs:
+  DeployRoleArn:
+    Description: Set this as the AWS_DEPLOY_ROLE_ARN GitHub Actions variable.
+    Value: !GetAtt DeployRole.Arn
+  EcrRepositoryUri:
+    Description: Where deploy-aws.yml pushes the image (derived automatically in the workflow; shown for reference).
+    Value: !GetAtt ImageRepository.RepositoryUri
+  EcrAccessRoleArn:
+    Description: Used by the workflow when creating the App Runner service.
+    Value: !GetAtt AppRunnerEcrAccessRole.Arn

@@ -1,0 +1,105 @@
+name: Deploy to AWS
+
+# Builds the scoring-API image, pushes it to ECR, and creates or redeploys
+# the App Runner service — authenticated via GitHub OIDC (no stored AWS
+# keys). One-time setup: apply infra/aws/bootstrap.yaml in CloudFormation,
+# then set repo Actions VARIABLES (Settings -> Secrets and variables ->
+# Actions -> Variables):
+#   AWS_DEPLOY_ROLE_ARN  — the stack's DeployRoleArn output
+#   AWS_REGION           — the region the stack was created in (e.g. us-east-1)
+# Full walkthrough: docs/DEPLOY_AWS.md
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  id-token: write # OIDC federation to AWS
+
+concurrency:
+  group: deploy-aws
+  cancel-in-progress: false
+
+env:
+  SERVICE_NAME: earnings-signals-api
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fail fast if bootstrap variables are missing
+        run: |
+          if [ -z "${{ vars.AWS_DEPLOY_ROLE_ARN }}" ] || [ -z "${{ vars.AWS_REGION }}" ]; then
+            echo "::error::Set AWS_DEPLOY_ROLE_ARN and AWS_REGION repo variables (see docs/DEPLOY_AWS.md)"
+            exit 1
+          fi
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - uses: aws-actions/amazon-ecr-login@v2
+        id: ecr
+
+      - name: Build and push image
+        env:
+          REGISTRY: ${{ steps.ecr.outputs.registry }}
+        run: |
+          IMAGE="$REGISTRY/$SERVICE_NAME"
+          docker build -t "$IMAGE:latest" -t "$IMAGE:${GITHUB_SHA::12}" .
+          docker push "$IMAGE:latest"
+          docker push "$IMAGE:${GITHUB_SHA::12}"
+          echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
+
+      - name: Create service on first deploy (later pushes auto-deploy)
+        run: |
+          ARN=$(aws apprunner list-services \
+            --query "ServiceSummaryList[?ServiceName=='$SERVICE_NAME'].ServiceArn" --output text)
+          if [ -z "$ARN" ]; then
+            echo "No existing service — creating $SERVICE_NAME"
+            ACCESS_ROLE=$(aws iam get-role --role-name "$SERVICE_NAME-apprunner-ecr-access" \
+              --query Role.Arn --output text)
+            aws apprunner create-service \
+              --service-name "$SERVICE_NAME" \
+              --source-configuration "{
+                \"AuthenticationConfiguration\": {\"AccessRoleArn\": \"$ACCESS_ROLE\"},
+                \"AutoDeploymentsEnabled\": true,
+                \"ImageRepository\": {
+                  \"ImageIdentifier\": \"$IMAGE:latest\",
+                  \"ImageRepositoryType\": \"ECR\",
+                  \"ImageConfiguration\": {\"Port\": \"8000\"}
+                }
+              }" \
+              --instance-configuration '{"Cpu": "0.25 vCPU", "Memory": "0.5 GB"}' \
+              --health-check-configuration '{"Protocol": "HTTP", "Path": "/healthz"}' \
+              --query Service.ServiceArn --output text
+          else
+            echo "Service exists ($ARN) — the :latest push above triggers auto-deploy"
+          fi
+
+      - name: Wait for the service to be RUNNING and healthy
+        run: |
+          ARN=$(aws apprunner list-services \
+            --query "ServiceSummaryList[?ServiceName=='$SERVICE_NAME'].ServiceArn" --output text)
+          for i in $(seq 1 60); do
+            STATUS=$(aws apprunner describe-service --service-arn "$ARN" \
+              --query Service.Status --output text)
+            echo "[$i] status: $STATUS"
+            [ "$STATUS" = "RUNNING" ] && break
+            if [ "$STATUS" = "CREATE_FAILED" ] || [ "$STATUS" = "DELETE_FAILED" ]; then
+              echo "::error::App Runner service entered $STATUS"; exit 1
+            fi
+            sleep 15
+          done
+          URL=$(aws apprunner describe-service --service-arn "$ARN" \
+            --query Service.ServiceUrl --output text)
+          curl -sf "https://$URL/healthz"
+          echo ""
+          echo "### Deployed: https://$URL" >> "$GITHUB_STEP_SUMMARY"
+          echo "Point web/index.template.html's signals-api meta tag at this origin to enable the live scorer." >> "$GITHUB_STEP_SUMMARY"
