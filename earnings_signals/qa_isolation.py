@@ -22,7 +22,7 @@ identifiable as an executive is treated as an analyst and excluded.
 import re
 from dataclasses import dataclass
 
-from src.qa_extract import find_qa_start
+from earnings_signals.qa_extract import find_qa_start
 
 # A speaker turn label: 1-4 capitalized words (accents/initials/hyphens
 # allowed), optionally followed by "- Firm Name" (analyst labels are often
@@ -84,7 +84,7 @@ def executive_qa_turns(transcript: str) -> tuple[list[tuple[str, str]], str]:
 
     mode is "exec_turns" when at least one turn is attributed, else
     "no_qa_boundary" / "no_exec_attribution" (empty turn list). Speakers are
-    normalized names, which downstream consumers (e.g. src/exec_roles.py)
+    normalized names, which downstream consumers (e.g. earnings_signals/exec_roles.py)
     can map to roster titles.
     """
     transcript = transcript.lstrip("﻿ \n")

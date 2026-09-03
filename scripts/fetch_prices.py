@@ -2,7 +2,7 @@
 
 For every earnings call in data/processed/sp500_uncertainty_features.parquet,
 pulls the company's daily closes from Financial Modeling Prep and computes the
-post-call return over two horizons (src/price_drift.py). Writes
+post-call return over two horizons (earnings_signals/price_drift.py). Writes
 data/processed/price_outcomes.parquet.
 
 Requires an FMP API key in the FMP_API_KEY environment variable. This runs
@@ -13,13 +13,12 @@ workflow .github/workflows/price-outcomes.yml with an FMP_API_KEY repo secret
 """
 
 import os
-import sys
 import time
 
 import pandas as pd
 import requests
 
-from src.price_drift import drift_outcomes
+from earnings_signals.price_drift import drift_outcomes
 
 PANEL = "data/processed/sp500_uncertainty_features.parquet"
 OUT = "data/processed/price_outcomes.parquet"

@@ -1,6 +1,6 @@
 import pytest
 
-from src.price_drift import drift_outcomes, forward_return
+from earnings_signals.price_drift import drift_outcomes, forward_return
 
 
 # 8 consecutive trading days, prices doubling-ish for easy arithmetic.

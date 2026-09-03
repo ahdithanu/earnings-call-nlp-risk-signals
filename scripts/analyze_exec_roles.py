@@ -1,12 +1,12 @@
 """Role view: whose Q&A hedging carries the signal — the CEO's or the CFO's?
 
-Splits executive Q&A speech by roster role (src/exec_roles.py) and reruns
+Splits executive Q&A speech by roster role (earnings_signals/exec_roles.py) and reruns
 the panel spec on each role's uncertainty density. The tone literature
 (e.g. CFO-vs-CEO tone studies) suggests CFO language is the more
 informative channel; this tests that on our panel.
 
 Coverage caveat, stated up front: roles come from the roster or intro-prose
-headers (src/exec_roles.py; ~98% of rows attribute), and a call only enters
+headers (earnings_signals/exec_roles.py; ~98% of rows attribute), and a call only enters
 the regression sample when BOTH the CEO and the CFO spoke enough in its
 Q&A. That still trims the panel, so the report includes the full-Q&A
 benchmark re-estimated on the SAME subsample so the role effects are

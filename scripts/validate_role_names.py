@@ -19,8 +19,8 @@ import io
 import pandas as pd
 from datasets import load_dataset
 
-from src.exec_roles import intro_titles, role_of_title, roster_titles
-from src.universe import select_universe
+from earnings_signals.exec_roles import intro_titles, role_of_title, roster_titles
+from earnings_signals.universe import select_universe
 
 OUT_TXT = "results/role_name_continuity.txt"
 

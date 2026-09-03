@@ -28,10 +28,10 @@ import pandas as pd
 import statsmodels.formula.api as smf
 from datasets import load_dataset
 
-from src.features import add_next_quarter_eps
-from src.lexicon import load_uncertainty_terms
-from src.qa_extract import extract_qa
-from src.uncertainty import count_uncertainty
+from earnings_signals.features import add_next_quarter_eps
+from earnings_signals.lexicon import load_uncertainty_terms
+from earnings_signals.qa_extract import extract_qa
+from earnings_signals.uncertainty import count_uncertainty
 
 DATASET = "glopardo/sp500-earnings-transcripts"
 OUT_TXT = "results/cross_sector_robustness.txt"

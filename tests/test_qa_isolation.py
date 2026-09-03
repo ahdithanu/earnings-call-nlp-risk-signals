@@ -1,4 +1,4 @@
-from src.qa_isolation import isolate_executive_qa
+from earnings_signals.qa_isolation import isolate_executive_qa
 
 SYNTHETIC = (
     "﻿ Executives: Jane Doe - CEO John Roe - CFO "

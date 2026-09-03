@@ -41,7 +41,7 @@ Does hedging predict the *stock*, not just EPS? [`scripts/fetch_prices.py`](scri
 
 ## Methodology
 
-1. **Data:** [glopardo/sp500-earnings-transcripts](https://huggingface.co/datasets/glopardo/sp500-earnings-transcripts) — 20,681 S&P 500 earnings-call transcripts with quarter keys, GICS sector, and trailing/forward 12-month EPS. The panel is the full S&P 500 — all 11 GICS sectors, 494 tickers, 20,350 deduplicated company-quarters (GOOG and NWS dropped as duplicate share classes carrying the same calls as GOOGL/NWSA). The universe is defined in one place (`src/universe.py`); the site's headline counts are derived from the data, so changing the universe is a single edit plus a rerun — no hardcoded numbers to chase.
+1. **Data:** [glopardo/sp500-earnings-transcripts](https://huggingface.co/datasets/glopardo/sp500-earnings-transcripts) — 20,681 S&P 500 earnings-call transcripts with quarter keys, GICS sector, and trailing/forward 12-month EPS. The panel is the full S&P 500 — all 11 GICS sectors, 494 tickers, 20,350 deduplicated company-quarters (GOOG and NWS dropped as duplicate share classes carrying the same calls as GOOGL/NWSA). The universe is defined in one place (`earnings_signals/universe.py`); the site's headline counts are derived from the data, so changing the universe is a single edit plus a rerun — no hardcoded numbers to chase.
 2. **Q&A isolation:** transcripts are a single speaker-prefixed string, so the Q&A boundary is found by position-aware markers (explicit "Question-and-Answer Session" header, falling back to the operator's first-question handoff; intro announcements are ignored). 98% of transcripts split cleanly; the rest are flagged rather than silently mis-scored. Within the Q&A, speaker attribution (roster + prepared-remarks speakers) isolates **executive-only answers** (98%), and roster titles or IR-intro prose assign **CEO/CFO roles** (95.6%; parsed names validated at 87.7% surname continuity across the dataset's 2018/2019 format change, most mismatches being genuine executive transitions — [`results/role_name_continuity.txt`](results/role_name_continuity.txt)).
 3. **Uncertainty scoring:** negation-aware matching against the full 297-term Loughran-McDonald uncertainty category — "no material risk" does not count as risk. Density = uncertainty terms per 100 tokens, computed for five scopes: full call, Q&A section, executive-only answers, CEO answers, CFO answers.
 4. **Outcome variable:** next-quarter trailing-12M EPS growth, with a calendar-gap guard so a missing quarter yields NaN instead of a fabricated "next quarter."
@@ -77,7 +77,7 @@ Does hedging predict the *stock*, not just EPS? [`scripts/fetch_prices.py`](scri
 │   ├── latest_signals.py                   # forward-looking monitoring report
 │   └── export_web_data.py                  # renders self-contained web/index.html from the parquet
 ├── web/                                    # self-contained explorer: index.template.html (source) → index.html (generated, data inlined)
-├── src/
+├── earnings_signals/
 │   ├── lexicon.py                          # LM lexicon loader (refuses truncated lists)
 │   ├── uncertainty.py                      # tokenizer + negation-aware uncertainty counting
 │   ├── qa_extract.py                       # Q&A boundary detection

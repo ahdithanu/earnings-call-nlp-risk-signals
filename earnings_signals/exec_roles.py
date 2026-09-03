@@ -21,7 +21,7 @@ with a real Q&A speaker's surname, which the ambiguity rule also catches.
 
 import re
 
-from src.qa_isolation import _norm, executive_qa_turns
+from earnings_signals.qa_isolation import _norm, executive_qa_turns
 
 # Title words that regex name-capture sometimes swallows ("Founder and CEO
 # Ken Xie" -> "Founder"; "Executive Chairman" -> "Chairman"). Stripped from

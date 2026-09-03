@@ -40,9 +40,9 @@ import numpy as np
 import pandas as pd
 from datasets import load_dataset
 
-from src.lexicon import load_uncertainty_terms
-from src.qa_extract import extract_qa
-from src.uncertainty import count_uncertainty
+from earnings_signals.lexicon import load_uncertainty_terms
+from earnings_signals.qa_extract import extract_qa
+from earnings_signals.uncertainty import count_uncertainty
 
 PANEL = "data/processed/sp500_uncertainty_features.parquet"
 RECENT_DATASET = "Rogersurf/earnings-call-transcripts"

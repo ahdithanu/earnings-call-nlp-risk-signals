@@ -3,7 +3,7 @@
 The main analysis (scripts/analyze_uncertainty_growth.py) scores the whole
 Q&A section, which mixes executive hedging with analyst phrasing — and
 analyst questions are themselves uncertainty-heavy ("what risks do you
-see"). The _execqa columns (src/qa_isolation.py) strip analyst speech out.
+see"). The _execqa columns (earnings_signals/qa_isolation.py) strip analyst speech out.
 If the hypothesis is right that the signal lives in *executive* language,
 the exec-only measure should carry at least as much signal as the full-Q&A
 measure, on identical rows.

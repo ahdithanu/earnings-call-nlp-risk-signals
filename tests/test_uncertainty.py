@@ -1,5 +1,5 @@
-from src.lexicon import load_uncertainty_terms
-from src.uncertainty import count_uncertainty, tokenize
+from earnings_signals.lexicon import load_uncertainty_terms
+from earnings_signals.uncertainty import count_uncertainty, tokenize
 
 LEX = load_uncertainty_terms()
 

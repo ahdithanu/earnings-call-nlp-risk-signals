@@ -3,24 +3,24 @@
 Pipeline over glopardo/sp500-earnings-transcripts (schema confirmed by
 scripts/inspect_dataset.py — 20,681 rows, one `train` split):
 
-  Step 2  Filter to the universe defined in src/universe.py
+  Step 2  Filter to the universe defined in earnings_signals/universe.py
           (select_universe): the full S&P 500 — all 11 GICS sectors —
           minus dual-share-class duplicates (GOOG, NWS carry the same
           calls as GOOGL, NWSA). That module is the single place to
           change which companies are in.
-  Step 3  Isolate the Q&A section of each transcript (src/qa_extract.py).
+  Step 3  Isolate the Q&A section of each transcript (earnings_signals/qa_extract.py).
           ~98% of tech transcripts split cleanly; the rest keep only
           full-transcript metrics and qa_isolated=False. Within the Q&A,
-          src/qa_isolation.py additionally extracts executive-only answers
+          earnings_signals/qa_isolation.py additionally extracts executive-only answers
           (roster + prepared-remarks speaker attribution) for the _execqa
           metric scope; where attribution fails, _execqa columns are null
-          and qa_exec_isolated=False. src/exec_roles.py further splits
+          and qa_exec_isolated=False. earnings_signals/exec_roles.py further splits
           exec speech by role for the _ceo/_cfo scopes, attributing roles
           from the titled roster (2013-2018 format) or the IR intro prose
           (2019+ format); role_attributed/role_source record coverage.
-  Step 4  Negation-aware LM uncertainty counts (src/uncertainty.py) on the
+  Step 4  Negation-aware LM uncertainty counts (earnings_signals/uncertainty.py) on the
           full transcript and on the Q&A section separately.
-  Step 5  Forward EPS outcome (src/features.py). The dataset has no single-
+  Step 5  Forward EPS outcome (earnings_signals/features.py). The dataset has no single-
           quarter EPS column; the realized-earnings series is the trailing
           12-month EPS at end of quarter (eps12mtrailing_eoq), so that is
           the panel's `eps`. Output columns are renamed with an eps_ttm_
@@ -43,13 +43,13 @@ os.environ.setdefault("HF_HUB_DISABLE_XET", "1")
 import pandas as pd
 from datasets import load_dataset
 
-from src.exec_roles import exec_qa_by_role
-from src.features import add_next_quarter_eps
-from src.lexicon import CONTROL_LOADERS, load_uncertainty_terms
-from src.qa_extract import extract_qa
-from src.qa_isolation import isolate_executive_qa
-from src.uncertainty import count_uncertainty
-from src.universe import select_universe
+from earnings_signals.exec_roles import exec_qa_by_role
+from earnings_signals.features import add_next_quarter_eps
+from earnings_signals.lexicon import CONTROL_LOADERS, load_uncertainty_terms
+from earnings_signals.qa_extract import extract_qa
+from earnings_signals.qa_isolation import isolate_executive_qa
+from earnings_signals.uncertainty import count_uncertainty
+from earnings_signals.universe import select_universe
 
 DATASET = "glopardo/sp500-earnings-transcripts"
 OUT_PATH = "data/processed/sp500_uncertainty_features.parquet"
@@ -102,7 +102,7 @@ def main() -> None:
     controls = {cat: loader() for cat, loader in CONTROL_LOADERS.items()}
     df = load_dataset(DATASET)["train"].to_pandas()
 
-    # Step 2: universe filter (src/universe.py is the single source of truth)
+    # Step 2: universe filter (earnings_signals/universe.py is the single source of truth)
     # + panel-key hygiene.
     df = df[select_universe(df)].copy()
     n_universe = len(df)
@@ -122,7 +122,7 @@ def main() -> None:
 
     # Steps 3-4: Q&A isolation + uncertainty scoring. Three text scopes per
     # transcript: the full call, the Q&A section (all speakers), and the
-    # executive-only answers within the Q&A (src/qa_isolation.py) — the
+    # executive-only answers within the Q&A (earnings_signals/qa_isolation.py) — the
     # _execqa scope strips analyst questions, whose phrasing is itself
     # uncertainty-heavy ("what risks do you see"), out of the signal.
     rows = []
@@ -130,7 +130,7 @@ def main() -> None:
         qa = extract_qa(transcript)
         iso = isolate_executive_qa(transcript)
         exec_qa = iso.text if iso.mode == "exec_turns" else None
-        # Role split (src/exec_roles.py): titled roster (2013-2018 format)
+        # Role split (earnings_signals/exec_roles.py): titled roster (2013-2018 format)
         # or IR intro prose (2019+ format); elsewhere _ceo/_cfo stay null.
         by_role, role_source = exec_qa_by_role(transcript)
         ceo_text = (by_role or {}).get("ceo") or None

@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from src.features import add_next_quarter_eps
+from earnings_signals.features import add_next_quarter_eps
 
 
 def make(rows):

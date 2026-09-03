@@ -1,4 +1,4 @@
-from src.exec_roles import exec_qa_by_role, role_of_title, roster_titles
+from earnings_signals.exec_roles import exec_qa_by_role, role_of_title, roster_titles
 
 TRANSCRIPT = (
     "﻿ Executives: Jane Doe - President and CEO John Roe - SVP, CFO "
@@ -78,7 +78,7 @@ INTRO_TRANSCRIPT = (
 
 
 def test_intro_prose_fallback():
-    from src.exec_roles import intro_titles
+    from earnings_signals.exec_roles import intro_titles
 
     names = dict(intro_titles(INTRO_TRANSCRIPT))
     assert "jane doe" in names and "john roe" in names
