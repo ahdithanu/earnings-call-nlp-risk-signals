@@ -29,15 +29,11 @@ env:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    # Skip cleanly (no red run) until the one-time bootstrap has set the
+    # repo variables — version tags fire this workflow either way.
+    if: vars.AWS_DEPLOY_ROLE_ARN != '' && vars.AWS_REGION != ''
     steps:
       - uses: actions/checkout@v4
-
-      - name: Fail fast if bootstrap variables are missing
-        run: |
-          if [ -z "${{ vars.AWS_DEPLOY_ROLE_ARN }}" ] || [ -z "${{ vars.AWS_REGION }}" ]; then
-            echo "::error::Set AWS_DEPLOY_ROLE_ARN and AWS_REGION repo variables (see docs/DEPLOY_AWS.md)"
-            exit 1
-          fi
 
       - uses: aws-actions/configure-aws-credentials@v4
         with:
