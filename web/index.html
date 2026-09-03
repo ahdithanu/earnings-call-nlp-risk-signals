@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Earnings-Call Uncertainty Explorer</title>
 <meta name="description" content="A language signal from the Q&amp;A floor: across S&amp;P 500 earnings calls, more hedging language associates with softer next-quarter EPS growth.">
+<!-- Set to the deployed scoring-API origin (e.g. https://api.example.com) to
+     enable the live "score your own text" section; empty keeps the page
+     fully static. -->
+<meta name="signals-api" content="">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
@@ -113,6 +117,56 @@
       <div id="watchlist" style="border: 1px solid #2b3345; background: #131725;"></div>
       <p style="margin: 16px 0 0; color: #5b6478; font-size: 13px; max-width: 72ch; text-wrap: pretty;">A high reading is a prompt to read the transcript, not a forecast — the panel effect is real but modest, and any single company's number is noisy.</p>
     </section>
+
+    <!-- ============ LIVE SCORER ============ -->
+    <section id="scorer" style="padding: 56px 0 8px; border-top: 1px solid #232937;" hidden>
+      <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: 0.14em; color: #5b6478; margin-bottom: 8px;">TRY IT — SCORE YOUR OWN TEXT</div>
+      <p style="margin: 0 0 16px; color: #a7aec0; font-size: 14px; max-width: 64ch; text-wrap: pretty;">Paste any earnings-call excerpt (or full transcript). The same negation-aware Loughran-McDonald scorer behind this page runs live; a full transcript also gets Q&amp;A, executive-only, and CEO/CFO breakdowns.</p>
+      <textarea id="scorerInput" rows="5" placeholder="We may possibly face risk, though we see no material uncertainty…" style="width: 100%; box-sizing: border-box; background: #131725; border: 1px solid #2b3345; color: #e6e9f0; font: 14px/1.5 'IBM Plex Mono', monospace; padding: 12px; resize: vertical;"></textarea>
+      <div style="display: flex; align-items: center; gap: 16px; margin-top: 10px;">
+        <button id="scorerBtn" style="background: #e8b04b; color: #10131c; border: 0; font: 600 13px 'IBM Plex Mono', monospace; letter-spacing: 0.08em; padding: 10px 20px; cursor: pointer;">SCORE</button>
+        <span id="scorerStatus" style="color: #5b6478; font-size: 13px;"></span>
+      </div>
+      <div id="scorerOut" style="margin-top: 16px;"></div>
+    </section>
+    <script>
+    // Live-scoring demo, active only when an API base is configured and the
+    // service answers /healthz — the page stays fully static otherwise.
+    (function () {
+      const API_BASE = (window.SIGNALS_API_BASE || document.querySelector('meta[name="signals-api"]')?.content || "").replace(/\/$/, "");
+      if (!API_BASE) return;
+      const sect = document.getElementById("scorer");
+      fetch(API_BASE + "/healthz").then(r => { if (r.ok) sect.hidden = false; }).catch(() => {});
+      const fmt = (x) => x == null ? "—" : (+x).toFixed(2);
+      document.getElementById("scorerBtn").addEventListener("click", async () => {
+        const text = document.getElementById("scorerInput").value.trim();
+        const status = document.getElementById("scorerStatus");
+        const out = document.getElementById("scorerOut");
+        if (!text) { status.textContent = "paste some text first"; return; }
+        status.textContent = "scoring…"; out.innerHTML = "";
+        try {
+          const r = await fetch(API_BASE + "/score", {
+            method: "POST", headers: { "content-type": "application/json" },
+            body: JSON.stringify({ text }),
+          });
+          if (!r.ok) throw new Error("HTTP " + r.status);
+          const body = await r.json();
+          status.textContent = "";
+          const names = { full: "Full text", qa: "Q&A section", execqa: "Executive answers", ceo: "CEO answers", cfo: "CFO answers" };
+          let html = '<table style="width:100%; border-collapse: collapse; font-size: 13px;"><tr style="color:#5b6478; text-align:left;"><th style="padding:6px 8px;">Scope</th><th>Tokens</th><th>Uncertainty terms</th><th>Negation-excluded</th><th>Density /100</th></tr>';
+          for (const [key, label] of Object.entries(names)) {
+            const s = body.scopes[key];
+            if (!s) continue;
+            html += `<tr style="border-top:1px solid #232937;"><td style="padding:6px 8px; color:#e6e9f0;">${label}</td><td>${s.total_tokens}</td><td>${s.uncertainty_count}</td><td>${s.negation_excluded}</td><td style="color:#e8b04b;">${fmt(s.uncertainty_density)}</td></tr>`;
+          }
+          html += "</table>";
+          out.innerHTML = html;
+        } catch (e) {
+          status.textContent = "scoring service unavailable (" + e.message + ")";
+        }
+      });
+    })();
+    </script>
 
     <!-- ============ METHOD ============ -->
     <section style="padding: 64px 0 0;">

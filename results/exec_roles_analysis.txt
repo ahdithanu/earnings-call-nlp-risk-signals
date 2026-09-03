@@ -1,9 +1,9 @@
 === coverage ===
 rows total: 20350
-role_attributed: 19453 (95.6%) — by source: {'intro': 11757, 'roster': 7696, nan: 897}
+role_attributed: 19452 (95.6%) — by source: {'intro': 11757, 'roster': 7695, nan: 898}
 (roster = 2013-2018 transcript format; intro = 2019+ format, roles parsed from the IR intro prose)
-CEO spoke in Q&A: 14052; >= 200 tokens: 13818
-CFO spoke in Q&A: 14130; >= 200 tokens: 13036
+CEO spoke in Q&A: 14050; >= 200 tokens: 13818
+CFO spoke in Q&A: 14124; >= 200 tokens: 13036
 
 regression sample (both roles >= 200 tokens, outcome present): 10419 rows, 481 tickers, years 2013-2024
 

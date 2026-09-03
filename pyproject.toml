@@ -43,6 +43,8 @@ packages = ["earnings_signals"]
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+# the legacy exploratory notebook predates the pipeline and is kept as-is
+extend-exclude = ["*.ipynb"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B", "SIM"]

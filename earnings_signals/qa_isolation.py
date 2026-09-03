@@ -37,9 +37,7 @@ _TURN_RE = re.compile(
 
 # Roster entries look like "Bill Sullivan - President and CEO"; the name is
 # the capitalized run immediately before a dash.
-_ROSTER_NAME_RE = re.compile(
-    r"([A-Z][\w.'’\-]*(?:\s+[A-Z][\w.'’\-]*){0,3})\s*[-–—]", re.UNICODE
-)
+_ROSTER_NAME_RE = re.compile(r"([A-Z][\w.'’\-]*(?:\s+[A-Z][\w.'’\-]*){0,3})\s*[-–—]", re.UNICODE)
 
 
 def _norm(name: str) -> str:
@@ -52,7 +50,7 @@ def _parse_roster(header: str, start_label: str, end_labels: list[str]) -> set[s
     m = re.search(start_label, header, re.IGNORECASE)
     if not m:
         return set()
-    block = header[m.end():]
+    block = header[m.end() :]
     end = len(block)
     for lbl in end_labels:
         e = re.search(lbl, block, re.IGNORECASE)
@@ -68,7 +66,7 @@ def _split_turns(text: str) -> list[tuple[str, str]]:
     turns = []
     for i, m in enumerate(matches):
         end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
-        turns.append((_norm(m.group(1)), text[m.end():end].strip()))
+        turns.append((_norm(m.group(1)), text[m.end() : end].strip()))
     return turns
 
 
@@ -110,11 +108,14 @@ def executive_qa_turns(transcript: str) -> tuple[list[tuple[str, str]], str]:
         if not speaker or speaker == "operator" or speaker in analysts:
             continue
         # full-name match, or surname-only match for label variants
-        # ("Bill" vs "William Sullivan") when the surname isn't an analyst's
-        if speaker in execs or (
-            speaker.split()[-1] in exec_surnames
-            and speaker.split()[-1] not in analyst_surnames
-        ):
+        # ("Bill" vs "William Sullivan") when the surname isn't an analyst's.
+        # `words` can be empty when labels are adjacent ("John Roe : Operator :");
+        # a word-less turn is not speech and must not flip the transcript to
+        # "exec_turns" on its own.
+        is_exec = speaker in execs or (
+            speaker.split()[-1] in exec_surnames and speaker.split()[-1] not in analyst_surnames
+        )
+        if is_exec and words:
             exec_turns.append((speaker, words))
 
     if not exec_turns:

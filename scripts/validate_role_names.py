@@ -73,10 +73,12 @@ def main() -> None:
     emit(f"surname continuity: {res['match'].mean():.1%}")
     emit("\nmismatches (genuine transitions or parser artifacts, triage manually):")
     emit(res[~res.match].to_string(index=False))
-    emit("\nknown-genuine CEO transitions in this window: ACN (Nanterme->Rowland), "
-         "INTU (Smith->Goodarzi), LRCX (Anstice->Archer), TDY (Mehrabian->Pichelli); "
-         "FTNT and STX changed CFOs. ON's 'guttman'/'gutmann' is a transcript "
-         "spelling variant of the same person.")
+    emit(
+        "\nknown-genuine CEO transitions in this window: ACN (Nanterme->Rowland), "
+        "INTU (Smith->Goodarzi), LRCX (Anstice->Archer), TDY (Mehrabian->Pichelli); "
+        "FTNT and STX changed CFOs. ON's 'guttman'/'gutmann' is a transcript "
+        "spelling variant of the same person."
+    )
 
     with open(OUT_TXT, "w", encoding="utf-8") as f:
         f.write(report.getvalue())

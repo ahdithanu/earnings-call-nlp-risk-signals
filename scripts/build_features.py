@@ -55,11 +55,23 @@ DATASET = "glopardo/sp500-earnings-transcripts"
 OUT_PATH = "data/processed/sp500_uncertainty_features.parquet"
 
 PASSTHROUGH_COLS = [
-    "ticker", "company", "sector", "industry", "cik",
-    "year", "quarter", "datacqtr", "datafqtr", "earnings_date",
-    "eps12mtrailing_qavg", "eps12mtrailing_eoq",
-    "eps12mfwd_qavg", "eps12mfwd_eoq", "eps_lt",
-    "peforw_qavg", "peforw_eoq",
+    "ticker",
+    "company",
+    "sector",
+    "industry",
+    "cik",
+    "year",
+    "quarter",
+    "datacqtr",
+    "datafqtr",
+    "earnings_date",
+    "eps12mtrailing_qavg",
+    "eps12mtrailing_eoq",
+    "eps12mfwd_qavg",
+    "eps12mfwd_eoq",
+    "eps_lt",
+    "peforw_qavg",
+    "peforw_eoq",
 ]
 
 
@@ -107,8 +119,7 @@ def main() -> None:
     df = df[select_universe(df)].copy()
     n_universe = len(df)
     df = df.dropna(subset=["year", "quarter"])
-    print(f"universe rows: {n_universe} "
-          f"({n_universe - len(df)} dropped for missing year/quarter)")
+    print(f"universe rows: {n_universe} ({n_universe - len(df)} dropped for missing year/quarter)")
     df["year"] = df["year"].astype(int)
     df["quarter"] = df["quarter"].astype(int)
 
@@ -136,8 +147,12 @@ def main() -> None:
         ceo_text = (by_role or {}).get("ceo") or None
         cfo_text = (by_role or {}).get("cfo") or None
         row = (
-            {"qa_isolated": qa is not None, "qa_exec_isolated": exec_qa is not None,
-             "role_attributed": by_role is not None, "role_source": role_source}
+            {
+                "qa_isolated": qa is not None,
+                "qa_exec_isolated": exec_qa is not None,
+                "role_attributed": by_role is not None,
+                "role_source": role_source,
+            }
             | score(transcript, lexicon, "full")
             | score(qa, lexicon, "qa")
             | score(exec_qa, lexicon, "execqa")
@@ -154,8 +169,11 @@ def main() -> None:
     # nullable ints and densities as floats instead of object columns.
     count_cols = ["total_tokens", "uncertainty_count", "negation_excluded"]
     count_cols += [f"{c}_count" for c in controls]
-    density_cols = ["uncertainty_density_qa", "uncertainty_density_full",
-                    "uncertainty_density_execqa"]
+    density_cols = [
+        "uncertainty_density_qa",
+        "uncertainty_density_full",
+        "uncertainty_density_execqa",
+    ]
     density_cols += [f"{c}_density_qa" for c in controls]
     density_cols += [f"{c}_density_full" for c in controls]
     density_cols += [f"{c}_density_execqa" for c in controls]
@@ -169,34 +187,43 @@ def main() -> None:
         | {"uncertainty_density_ceo": "float64", "uncertainty_density_cfo": "float64"}
     )
     out = pd.concat([df[PASSTHROUGH_COLS], metrics], axis=1)
-    print(f"qa isolated: {out['qa_isolated'].sum()}/{len(out)} "
-          f"({out['qa_isolated'].mean() * 100:.1f}%)")
-    print(f"exec-only qa isolated: {out['qa_exec_isolated'].sum()}/{len(out)} "
-          f"({out['qa_exec_isolated'].mean() * 100:.1f}%)")
+    print(
+        f"qa isolated: {out['qa_isolated'].sum()}/{len(out)} "
+        f"({out['qa_isolated'].mean() * 100:.1f}%)"
+    )
+    print(
+        f"exec-only qa isolated: {out['qa_exec_isolated'].sum()}/{len(out)} "
+        f"({out['qa_exec_isolated'].mean() * 100:.1f}%)"
+    )
     src_counts = out["role_source"].value_counts(dropna=False).to_dict()
-    print(f"role attributed: {out['role_attributed'].sum()}/{len(out)} "
-          f"({out['role_attributed'].mean() * 100:.1f}%) — by source: {src_counts}; "
-          f"CEO text present: {out['total_tokens_ceo'].notna().sum()}, "
-          f"CFO text present: {out['total_tokens_cfo'].notna().sum()}")
-    print(f"total negation-suppressed matches (full): "
-          f"{out['negation_excluded_full'].sum()}")
+    print(
+        f"role attributed: {out['role_attributed'].sum()}/{len(out)} "
+        f"({out['role_attributed'].mean() * 100:.1f}%) — by source: {src_counts}; "
+        f"CEO text present: {out['total_tokens_ceo'].notna().sum()}, "
+        f"CFO text present: {out['total_tokens_cfo'].notna().sum()}"
+    )
+    print(f"total negation-suppressed matches (full): {out['negation_excluded_full'].sum()}")
 
     # Step 5: forward EPS outcome on the trailing-12M series.
     out["eps"] = out["eps12mtrailing_eoq"]
     out = add_next_quarter_eps(out)
-    out = out.rename(columns={
-        "eps": "eps_ttm",
-        "eps_next_q": "eps_ttm_next_q",
-        "eps_growth_next_q": "eps_ttm_growth_next_q",
-    })
+    out = out.rename(
+        columns={
+            "eps": "eps_ttm",
+            "eps_next_q": "eps_ttm_next_q",
+            "eps_growth_next_q": "eps_ttm_growth_next_q",
+        }
+    )
     print(f"eps_ttm_next_q coverage: {out['eps_ttm_next_q'].notna().sum()}/{len(out)}")
 
     # Step 6: write parquet.
     os.makedirs(os.path.dirname(OUT_PATH), exist_ok=True)
     out.to_parquet(OUT_PATH, index=False)
-    print(f"wrote {OUT_PATH}: {len(out)} rows x {len(out.columns)} cols, "
-          f"{out['ticker'].nunique()} tickers, "
-          f"{out['year'].min()}-{out['year'].max()}")
+    print(
+        f"wrote {OUT_PATH}: {len(out)} rows x {len(out.columns)} cols, "
+        f"{out['ticker'].nunique()} tickers, "
+        f"{out['year'].min()}-{out['year'].max()}"
+    )
 
 
 if __name__ == "__main__":

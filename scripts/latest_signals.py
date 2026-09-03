@@ -44,29 +44,40 @@ def main() -> None:
         if sd == 0:
             continue
         prev = hist.iloc[-1]
-        rows.append({
-            "ticker": ticker,
-            "company": latest["company"],
-            "quarter": latest["datacqtr"],
-            "earnings_date": latest["earnings_date"],
-            "quarters_behind": int(panel_max_qidx - (latest["year"] * 4 + latest["quarter"] - 1)),
-            "n_history": len(hist),
-            "density_qa": latest["density"],
-            "density_z": (latest["density"] - mu) / sd,
-            "density_pctile": (hist["density"] < latest["density"]).mean() * 100,
-            "change_vs_prev_call": latest["density"] - prev["density"],
-        })
+        rows.append(
+            {
+                "ticker": ticker,
+                "company": latest["company"],
+                "quarter": latest["datacqtr"],
+                "earnings_date": latest["earnings_date"],
+                "quarters_behind": int(
+                    panel_max_qidx - (latest["year"] * 4 + latest["quarter"] - 1)
+                ),
+                "n_history": len(hist),
+                "density_qa": latest["density"],
+                "density_z": (latest["density"] - mu) / sd,
+                "density_pctile": (hist["density"] < latest["density"]).mean() * 100,
+                "change_vs_prev_call": latest["density"] - prev["density"],
+            }
+        )
 
     out = pd.DataFrame(rows).sort_values("density_z", ascending=False)
     out.to_csv(OUT_CSV, index=False)
 
     fresh = out[out["quarters_behind"] <= 1]
     print(f"scored {len(out)} tickers ({len(fresh)} within 1 quarter of panel edge)")
-    print(f"\nmost elevated hedging vs own history (top 10, fresh only):")
-    cols = ["ticker", "quarter", "earnings_date", "density_qa", "density_z",
-            "density_pctile", "change_vs_prev_call"]
+    print("\nmost elevated hedging vs own history (top 10, fresh only):")
+    cols = [
+        "ticker",
+        "quarter",
+        "earnings_date",
+        "density_qa",
+        "density_z",
+        "density_pctile",
+        "change_vs_prev_call",
+    ]
     print(fresh.head(10)[cols].to_string(index=False, float_format=lambda x: f"{x:+.2f}"))
-    print(f"\nmost subdued hedging (bottom 5, fresh only):")
+    print("\nmost subdued hedging (bottom 5, fresh only):")
     print(fresh.tail(5)[cols].to_string(index=False, float_format=lambda x: f"{x:+.2f}"))
     print(f"\nwrote {OUT_CSV}")
 

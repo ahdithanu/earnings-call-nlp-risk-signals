@@ -61,11 +61,13 @@ def main() -> None:
         # append calibrated recent quarters (already strictly newer than the
         # panel's last quarter for this ticker; EPS not yet realized)
         for r in recent_by_ticker.get(ticker, pd.DataFrame()).itertuples():
-            quarters.append({
-                "label": f"Q{int(r.quarter)} '{int(r.year) % 100:02d}",
-                "density": round(float(r.uncertainty_density_qa), 2),
-                "eps": None,
-            })
+            quarters.append(
+                {
+                    "label": f"Q{int(r.quarter)} '{int(r.year) % 100:02d}",
+                    "density": round(float(r.uncertainty_density_qa), 2),
+                    "eps": None,
+                }
+            )
             n_recent += 1
         # r is computed only on quarters with a realized EPS outcome, so the
         # density-only recent quarters do not affect it
@@ -86,14 +88,16 @@ def main() -> None:
             sd = prior.std(ddof=0)
             if sd > 0:
                 latest_z = round(float((dens[-1] - prior.mean()) / sd), 2)
-        companies.append({
-            "ticker": ticker,
-            "name": g["company"].iloc[-1],
-            "quarters": quarters,
-            "r": r_val,
-            "latestLabel": quarters[-1]["label"],
-            "latestZ": latest_z,
-        })
+        companies.append(
+            {
+                "ticker": ticker,
+                "name": g["company"].iloc[-1],
+                "quarters": quarters,
+                "r": r_val,
+                "latestLabel": quarters[-1]["label"],
+                "latestZ": latest_z,
+            }
+        )
 
     # PANEL is derived, never hand-typed: the regression stats come from the
     # analysis (results/panel_stats.json), and the ticker count from the data
@@ -110,8 +114,7 @@ def main() -> None:
 
     # Inject the data inline into the standalone template. json.dumps is safe
     # to embed in a <script>, except for "</" which could close the tag early.
-    data_json = json.dumps({"panel": panel, "companies": companies},
-                           separators=(",", ":"))
+    data_json = json.dumps({"panel": panel, "companies": companies}, separators=(",", ":"))
     data_json = data_json.replace("</", "<\\/")
     with open(TEMPLATE, encoding="utf-8") as f:
         template = f.read()
@@ -121,8 +124,10 @@ def main() -> None:
     with open(OUT, "w", encoding="utf-8") as f:
         f.write(html)
     n_q = sum(len(c["quarters"]) for c in companies)
-    print(f"wrote {OUT}: {len(companies)} companies, {n_q} quarters "
-          f"({n_recent} recent density-only), eps winsorized at [{lo:.1f}, {hi:.1f}]")
+    print(
+        f"wrote {OUT}: {len(companies)} companies, {n_q} quarters "
+        f"({n_recent} recent density-only), eps winsorized at [{lo:.1f}, {hi:.1f}]"
+    )
 
 
 if __name__ == "__main__":

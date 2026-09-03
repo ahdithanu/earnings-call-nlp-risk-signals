@@ -68,7 +68,7 @@ def main() -> None:
     panel = pd.read_parquet(PANEL)
     universe = set(panel["ticker"].unique())
     # last calendar-quarter index present per ticker in the panel
-    panel_qidx = (panel["year"] * 4 + panel["quarter"] - 1)
+    panel_qidx = panel["year"] * 4 + panel["quarter"] - 1
     last_panel = panel_qidx.groupby(panel["ticker"]).max()
 
     raw = load_dataset(RECENT_DATASET)["train"].to_pandas()
@@ -107,23 +107,27 @@ def main() -> None:
     recent = df[df["qidx"] > df["last_panel_qidx"]].copy()
     recent = recent.sort_values(["ticker", "year", "quarter"])
 
-    out = pd.DataFrame({
-        "ticker": recent["ticker"],
-        "company": recent["company"],
-        "year": recent["year"].astype(int),
-        "quarter": recent["quarter"].astype(int),
-        "datacqtr": recent["datacqtr"],
-        "earnings_date": recent["cd"].dt.strftime("%Y-%m-%d"),
-        "qa_isolated": True,
-        "total_tokens_qa": recent["total_tokens_qa"].astype(int),
-        "uncertainty_density_qa": recent["uncertainty_density_qa"].astype(float),
-        "source": "rogersurf",
-    })
+    out = pd.DataFrame(
+        {
+            "ticker": recent["ticker"],
+            "company": recent["company"],
+            "year": recent["year"].astype(int),
+            "quarter": recent["quarter"].astype(int),
+            "datacqtr": recent["datacqtr"],
+            "earnings_date": recent["cd"].dt.strftime("%Y-%m-%d"),
+            "qa_isolated": True,
+            "total_tokens_qa": recent["total_tokens_qa"].astype(int),
+            "uncertainty_density_qa": recent["uncertainty_density_qa"].astype(float),
+            "source": "rogersurf",
+        }
+    )
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     out.to_parquet(OUT, index=False)
-    print(f"\nwrote {OUT}: {len(out)} recent company-quarters, "
-          f"{out['ticker'].nunique()} tickers, "
-          f"{out['datacqtr'].min()}–{out['datacqtr'].max()}")
+    print(
+        f"\nwrote {OUT}: {len(out)} recent company-quarters, "
+        f"{out['ticker'].nunique()} tickers, "
+        f"{out['datacqtr'].min()}–{out['datacqtr'].max()}"
+    )
     print("newest quarter counts:")
     print(out["datacqtr"].value_counts().sort_index().tail(6).to_string())
 

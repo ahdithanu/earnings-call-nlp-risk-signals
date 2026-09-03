@@ -17,11 +17,21 @@ scripts/analyze_cross_sector.py.
 import pandas as pd
 
 # GICS sectors included wholesale — all 11, i.e. the whole S&P 500.
-UNIVERSE_SECTORS = frozenset({
-    "Communication Services", "Consumer Discretionary", "Consumer Staples",
-    "Energy", "Financials", "Health Care", "Industrials",
-    "Information Technology", "Materials", "Real Estate", "Utilities",
-})
+UNIVERSE_SECTORS = frozenset(
+    {
+        "Communication Services",
+        "Consumer Discretionary",
+        "Consumer Staples",
+        "Energy",
+        "Financials",
+        "Health Care",
+        "Industrials",
+        "Information Technology",
+        "Materials",
+        "Real Estate",
+        "Utilities",
+    }
+)
 
 # Individual tickers to include regardless of sector. Empty now that every
 # sector is in; kept for narrower future universes.
@@ -48,8 +58,23 @@ def select_universe(df: pd.DataFrame) -> "pd.Series":
 # field. Unused while the dataset provides GICS sectors; kept for that case.
 TECH_TICKERS = frozenset(
     {
-        "NVDA", "MSFT", "AAPL", "GOOGL", "META", "AMZN", "AMD", "INTC",
-        "CRM", "ORCL", "ADBE", "CSCO", "QCOM", "AVGO", "TXN", "NOW",
-        "IBM", "MU",
+        "NVDA",
+        "MSFT",
+        "AAPL",
+        "GOOGL",
+        "META",
+        "AMZN",
+        "AMD",
+        "INTC",
+        "CRM",
+        "ORCL",
+        "ADBE",
+        "CSCO",
+        "QCOM",
+        "AVGO",
+        "TXN",
+        "NOW",
+        "IBM",
+        "MU",
     }
 )

@@ -27,11 +27,29 @@ from earnings_signals.qa_isolation import _norm, executive_qa_turns
 # Ken Xie" -> "Founder"; "Executive Chairman" -> "Chairman"). Stripped from
 # candidate names; a candidate with nothing left is rejected. Validated
 # against the 2018/2019 boundary-continuity check.
-_NAME_STOPWORDS = frozenset({
-    "founder", "chairman", "chairwoman", "officer", "president", "chief",
-    "executive", "vice", "senior", "director", "general", "counsel", "head",
-    "investor", "relations", "co", "interim", "group", "corporate",
-})
+_NAME_STOPWORDS = frozenset(
+    {
+        "founder",
+        "chairman",
+        "chairwoman",
+        "officer",
+        "president",
+        "chief",
+        "executive",
+        "vice",
+        "senior",
+        "director",
+        "general",
+        "counsel",
+        "head",
+        "investor",
+        "relations",
+        "co",
+        "interim",
+        "group",
+        "corporate",
+    }
+)
 
 
 def _clean_name(name: str) -> str | None:
@@ -44,6 +62,7 @@ def _clean_name(name: str) -> str | None:
     while tokens and len(tokens[-1]) == 1:
         tokens.pop()
     return " ".join(tokens) if tokens else None
+
 
 ROLE_CEO = "ceo"
 ROLE_CFO = "cfo"
@@ -62,9 +81,7 @@ ROLES = (ROLE_CEO, ROLE_CFO, ROLE_IR, ROLE_OTHER)
 # falls back to the surname, the token right before the dash, which is
 # reliable.
 _NAME_TOKEN = r"(?:[A-Z](?=[\w'’\-]*[a-zà-ÿ])[\w'’\-]*|[A-Z]\.)"
-_NAME_DASH_RE = re.compile(
-    rf"({_NAME_TOKEN}(?:\s+{_NAME_TOKEN}){{0,2}})\s*[-–—]", re.UNICODE
-)
+_NAME_DASH_RE = re.compile(rf"({_NAME_TOKEN}(?:\s+{_NAME_TOKEN}){{0,2}})\s*[-–—]", re.UNICODE)
 
 
 def roster_titles(transcript: str) -> list[tuple[str, str]]:
@@ -73,16 +90,16 @@ def roster_titles(transcript: str) -> list[tuple[str, str]]:
     m = re.search(r"Executives?\s*:", head, re.IGNORECASE)
     if not m:
         return []
-    block = head[m.end():]
+    block = head[m.end() :]
     for lbl in (r"Analysts?\s*:", r"Operator\s*:"):
         e = re.search(lbl, block, re.IGNORECASE)
         if e:
-            block = block[:e.start()]
+            block = block[: e.start()]
     matches = list(_NAME_DASH_RE.finditer(block))
     pairs = []
     for i, mm in enumerate(matches):
         end = matches[i + 1].start() if i + 1 < len(matches) else len(block)
-        title = block[mm.end():end].strip(" ,;")
+        title = block[mm.end() : end].strip(" ,;")
         name = _clean_name(_norm(mm.group(1)))
         if name:
             pairs.append((name, title))
@@ -120,9 +137,7 @@ _INTRO_TITLE_RE = re.compile(
 _INTRO_NAME = rf"{_NAME_TOKEN}(?:\s+{_NAME_TOKEN}){{1,2}}"
 # name-first: "... Jane Doe, our Chief Executive Officer" — a name, a comma,
 # then at most a few filler words before the title phrase
-_NAME_BEFORE_RE = re.compile(
-    rf"({_INTRO_NAME})\s*,\s*(?:[\w'’\-]+\s+){{0,4}}$", re.UNICODE
-)
+_NAME_BEFORE_RE = re.compile(rf"({_INTRO_NAME})\s*,\s*(?:[\w'’\-]+\s+){{0,4}}$", re.UNICODE)
 # title-first: "... our CEO, Jane Doe" / "CEO Jane Doe"
 _NAME_AFTER_RE = re.compile(rf"^\s*,?\s*({_INTRO_NAME})", re.UNICODE)
 
@@ -141,8 +156,8 @@ def intro_titles(transcript: str) -> list[tuple[str, str]]:
     pairs = []
     for m in _INTRO_TITLE_RE.finditer(head):
         title = m.group(0)
-        before = head[max(0, m.start() - 80):m.start()]
-        after = head[m.end():m.end() + 80]
+        before = head[max(0, m.start() - 80) : m.start()]
+        after = head[m.end() : m.end() + 80]
         mb = _NAME_BEFORE_RE.search(before)
         ma = _NAME_AFTER_RE.match(after)
         raw = mb.group(1) if mb else (ma.group(1) if ma else None)
@@ -185,12 +200,12 @@ def exec_qa_by_role(transcript: str) -> tuple[dict[str, str] | None, str | None]
 
     buckets: dict[str, list[str]] = {r: [] for r in ROLES}
     for speaker, words in turns:
-        role = full_name_role.get(speaker)
-        if role is None:
+        turn_role: str | None = full_name_role.get(speaker)
+        if turn_role is None:
             surname = speaker.split()[-1]
             if surname not in ambiguous_surnames:
-                role = surname_role.get(surname)
+                turn_role = surname_role.get(surname)
         # an exec turn with no roster match (e.g. exec absent from a stale
         # roster) still counted as executive speech -> "other"
-        buckets[role or ROLE_OTHER].append(words)
+        buckets[turn_role or ROLE_OTHER].append(words)
     return {role: " ".join(chunks) for role, chunks in buckets.items()}, source

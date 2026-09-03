@@ -10,8 +10,16 @@ _TOKEN_RE = re.compile(r"[a-z]+(?:'[a-z]+)?")
 # Negators that can flip an uncertainty term's meaning ("no material risk").
 NEGATORS = frozenset(
     {
-        "no", "not", "never", "without",
-        "don't", "doesn't", "didn't", "wasn't", "isn't", "aren't",
+        "no",
+        "not",
+        "never",
+        "without",
+        "don't",
+        "doesn't",
+        "didn't",
+        "wasn't",
+        "isn't",
+        "aren't",
     }
 )
 
@@ -55,7 +63,7 @@ def count_uncertainty(text: str, lexicon: set[str]) -> UncertaintyResult:
     for i, tok in enumerate(tokens):
         if tok not in lexicon:
             continue
-        window = tokens[max(0, i - NEGATION_WINDOW):i]
+        window = tokens[max(0, i - NEGATION_WINDOW) : i]
         if any(w in NEGATORS for w in window):
             excluded += 1
         else:

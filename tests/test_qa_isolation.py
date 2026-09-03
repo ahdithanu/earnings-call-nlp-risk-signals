@@ -64,3 +64,17 @@ def test_attribution_failure_is_reported_not_papered_over():
     r = isolate_executive_qa(t)
     assert r.mode == "no_exec_attribution"
     assert r.text == ""
+
+
+def test_wordless_exec_turns_do_not_count_as_isolation():
+    # the only attributable exec "turn" is an empty one (adjacent labels);
+    # this must NOT report success with empty text (regression: DE 2015Q4)
+    t = (
+        "Alice Smith : Prepared remarks going on for quite a while in this "
+        "opening section so the position window is satisfied properly here. "
+        "Operator : We will now take our first question from Carl Fox. "
+        "Carl Fox : My question? Alice Smith : Operator : That ends the call."
+    )
+    r = isolate_executive_qa(t)
+    assert r.mode == "no_exec_attribution"
+    assert r.text == ""

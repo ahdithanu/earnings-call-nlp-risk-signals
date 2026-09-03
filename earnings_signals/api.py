@@ -16,15 +16,15 @@ because /score is a read-only demo endpoint over caller-supplied text.
 """
 
 import csv
-from importlib.metadata import PackageNotFoundError, version as pkg_version
-from pathlib import Path
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version as pkg_version
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from earnings_signals.exec_roles import exec_qa_by_role
-from earnings_signals.lexicon import REPO_ROOT, CONTROL_LOADERS, load_uncertainty_terms
+from earnings_signals.lexicon import CONTROL_LOADERS, REPO_ROOT, load_uncertainty_terms
 from earnings_signals.qa_extract import extract_qa
 from earnings_signals.qa_isolation import isolate_executive_qa
 from earnings_signals.uncertainty import count_uncertainty
@@ -87,9 +87,7 @@ def _score_scope(text: str) -> ScopeScore:
         uncertainty_count=r.uncertainty_count,
         negation_excluded=r.negation_excluded,
         uncertainty_density=r.density,
-        tone_density={
-            cat: count_uncertainty(text, lex).density for cat, lex in _CONTROLS.items()
-        },
+        tone_density={cat: count_uncertainty(text, lex).density for cat, lex in _CONTROLS.items()},
     )
 
 

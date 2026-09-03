@@ -2,7 +2,26 @@
 
 **Detecting Hedging Language in Corporate Communications**
 
+[![CI](https://github.com/ahdithanu/earnings-call-nlp-risk-signals/actions/workflows/ci.yml/badge.svg)](https://github.com/ahdithanu/earnings-call-nlp-risk-signals/actions/workflows/ci.yml)
+[![Weekly refresh](https://github.com/ahdithanu/earnings-call-nlp-risk-signals/actions/workflows/refresh-signals.yml/badge.svg)](https://github.com/ahdithanu/earnings-call-nlp-risk-signals/actions/workflows/refresh-signals.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Explorer](https://img.shields.io/badge/explorer-live-2ea44f)](https://ahdithanu.github.io/earnings-call-nlp-risk-signals/)
+
 An NLP pipeline that measures uncertainty and hedging language in earnings call transcripts and tests whether it predicts near-term earnings. Uses the Loughran-McDonald finance-specific lexicon over the Q&A sections of the full S&P 500's earnings calls — all 11 GICS sectors, 494 companies, 2013–2025.
+
+```mermaid
+flowchart LR
+    DS[("HF dataset\n20,681 transcripts")] --> BF["build_features\nQ&A / exec / role isolation\n+ negation-aware LM scoring"]
+    BF --> PQ[("feature parquet\n20,350 × 68")]
+    PQ --> QG{"data-quality\ngate"}
+    QG --> AN["panel analyses\nFE regressions, robustness"] --> RES[("results/")]
+    QG --> WL["watchlist\nout-of-sample z-scores"]
+    RES --> WEB["static explorer\nGitHub Pages"]
+    WL --> WEB
+    WL --> API["FastAPI service\n/score /signals /healthz\n(Docker, GHCR)"]
+    CRON["weekly cron\n+ failure alerts"] -.refreshes.-> WL
+    CRON -.redeploys.-> WEB
+```
 
 ## Why This Matters
 
@@ -38,6 +57,22 @@ Does hedging predict the *stock*, not just EPS? [`scripts/fetch_prices.py`](scri
 `scripts/latest_signals.py` turns the panel finding into a monitoring view: each ticker's most recent call is z-scored against that company's *prior* calls only (strictly out-of-sample), producing a watchlist of names whose executives are hedging unusually hard right now — [`results/latest_uncertainty_signals.csv`](results/latest_uncertainty_signals.csv). The report is only as fresh as the dataset (currently through 2025Q1); a `quarters_behind` column flags stale tickers.
 
 **Explore it:** `web/` is a static, self-contained explorer — per-company density-vs-growth charts for all 494 tickers, a **"hedging now" watchlist** ranking who is hedging most versus their own history (out-of-sample), and the panel result up top, live at [ahdithanu.github.io/earnings-call-nlp-risk-signals](https://ahdithanu.github.io/earnings-call-nlp-risk-signals/). The validated panel ends at 2025Q1; `scripts/fetch_recent_signals.py` extends each company's density series through 2026Q2 using a live transcript source ([Rogersurf/earnings-call-transcripts](https://huggingface.co/datasets/Rogersurf/earnings-call-transcripts)), calibrated to the panel's density scale on the ~90 company-quarters the two sources share (corr 0.94). Those recent quarters carry the hedging signal only — their next-quarter EPS is not yet realized — and never enter the regression. Regenerate the page with `scripts/export_web_data.py`.
+
+## Scoring API
+
+The scorer behind the pipeline is also a deployable service (`earnings_signals/api.py`):
+
+```bash
+make serve                       # local:  uvicorn earnings_signals.api:app --reload
+docker compose up                # containerized, live-reload
+docker pull ghcr.io/ahdithanu/earnings-signals-api:latest   # published on version tags
+```
+
+- `POST /score` — negation-aware uncertainty + LM tone densities for every scope derivable from the submitted text (full / Q&A / executive-only / CEO / CFO), with isolation flags and role provenance
+- `GET /signals` — the latest hedging watchlist
+- `GET /healthz` — liveness + lexicon sanity; interactive docs at `/docs`
+
+Point the explorer's `signals-api` meta tag at a deployed instance and the site gains a live "score your own text" section (it stays fully static otherwise).
 
 ## Methodology
 

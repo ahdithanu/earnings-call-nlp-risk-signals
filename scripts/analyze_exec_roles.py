@@ -44,11 +44,15 @@ def main() -> None:
 
     emit("=== coverage ===")
     emit(f"rows total: {n0}")
-    emit(f"role_attributed: {int(df['role_attributed'].sum())} "
-         f"({df['role_attributed'].mean() * 100:.1f}%) — by source: "
-         f"{df['role_source'].value_counts(dropna=False).to_dict()}")
-    emit("(roster = 2013-2018 transcript format; intro = 2019+ format, roles "
-         "parsed from the IR intro prose)")
+    emit(
+        f"role_attributed: {int(df['role_attributed'].sum())} "
+        f"({df['role_attributed'].mean() * 100:.1f}%) — by source: "
+        f"{df['role_source'].value_counts(dropna=False).to_dict()}"
+    )
+    emit(
+        "(roster = 2013-2018 transcript format; intro = 2019+ format, roles "
+        "parsed from the IR intro prose)"
+    )
     for role in ("ceo", "cfo"):
         n_any = int(df[f"total_tokens_{role}"].notna().sum())
         n_enough = int((df[f"total_tokens_{role}"] >= MIN_ROLE_TOKENS).sum())
@@ -61,48 +65,58 @@ def main() -> None:
     ].copy()
     lo, hi = df["eps_ttm_growth_next_q"].quantile([WINSOR_PCT, 1 - WINSOR_PCT])
     df["growth_w"] = df["eps_ttm_growth_next_q"].clip(lo, hi)
-    emit(f"\nregression sample (both roles >= {MIN_ROLE_TOKENS} tokens, outcome "
-         f"present): {len(df)} rows, {df['ticker'].nunique()} tickers, "
-         f"years {df['year'].min()}-{df['year'].max()}")
+    emit(
+        f"\nregression sample (both roles >= {MIN_ROLE_TOKENS} tokens, outcome "
+        f"present): {len(df)} rows, {df['ticker'].nunique()} tickers, "
+        f"years {df['year'].min()}-{df['year'].max()}"
+    )
 
     emit("\n=== who talks, who hedges ===")
-    share = (df["total_tokens_ceo"]
-             / (df["total_tokens_ceo"] + df["total_tokens_cfo"]))
+    share = df["total_tokens_ceo"] / (df["total_tokens_ceo"] + df["total_tokens_cfo"])
     emit(f"CEO share of CEO+CFO Q&A words: median {share.median():.1%}")
     for role in ("ceo", "cfo"):
-        emit(f"{role.upper()} uncertainty density: median "
-             f"{df[f'uncertainty_density_{role}'].median():.3f}, "
-             f"mean {df[f'uncertainty_density_{role}'].mean():.3f}")
-    emit(f"corr(ceo density, cfo density): "
-         f"{df['uncertainty_density_ceo'].corr(df['uncertainty_density_cfo']):+.3f}")
+        emit(
+            f"{role.upper()} uncertainty density: median "
+            f"{df[f'uncertainty_density_{role}'].median():.3f}, "
+            f"mean {df[f'uncertainty_density_{role}'].mean():.3f}"
+        )
+    emit(
+        f"corr(ceo density, cfo density): "
+        f"{df['uncertainty_density_ceo'].corr(df['uncertainty_density_cfo']):+.3f}"
+    )
 
     # z-score within ticker, as in the main analysis; tickers with too few
     # covered quarters produce NaN/degenerate z and drop out.
-    for col in ("uncertainty_density_ceo", "uncertainty_density_cfo",
-                "uncertainty_density_qa"):
-        z = df.groupby("ticker")[col].transform(
-            lambda s: (s - s.mean()) / s.std(ddof=0)
-        )
+    for col in ("uncertainty_density_ceo", "uncertainty_density_cfo", "uncertainty_density_qa"):
+        z = df.groupby("ticker")[col].transform(lambda s: (s - s.mean()) / s.std(ddof=0))
         df[f"z_{col.rsplit('_', 1)[1]}"] = z
     df = df.dropna(subset=["z_ceo", "z_cfo", "z_qa"])
     kw = dict(cov_type="cluster", cov_kwds={"groups": df["ticker"]})
 
     emit("\n=== panel: growth_w ~ role density_z + FE (clustered by ticker) ===")
     emit("(benchmark row re-estimates the full-Q&A density on this same subsample)")
-    for fe_label, fe in [("ticker FE", "C(ticker)"),
-                         ("ticker + quarter FE", "C(ticker) + C(datacqtr)")]:
+    for fe_label, fe in [
+        ("ticker FE", "C(ticker)"),
+        ("ticker + quarter FE", "C(ticker) + C(datacqtr)"),
+    ]:
         emit(f"[{fe_label}]")
-        for var, label in [("z_qa", "full-Q&A benchmark"),
-                           ("z_ceo", "CEO answers only"),
-                           ("z_cfo", "CFO answers only")]:
+        for var, label in [
+            ("z_qa", "full-Q&A benchmark"),
+            ("z_ceo", "CEO answers only"),
+            ("z_cfo", "CFO answers only"),
+        ]:
             fit = smf.ols(f"growth_w ~ {var} + {fe}", data=df).fit(**kw)
-            emit(f"  {label:<20} coef = {fit.params[var]:+.3f} pp per 1 SD "
-                 f"(t={fit.tvalues[var]:+.2f}, p={fit.pvalues[var]:.3f}, "
-                 f"n={int(fit.nobs)})")
+            emit(
+                f"  {label:<20} coef = {fit.params[var]:+.3f} pp per 1 SD "
+                f"(t={fit.tvalues[var]:+.2f}, p={fit.pvalues[var]:.3f}, "
+                f"n={int(fit.nobs)})"
+            )
         fit = smf.ols(f"growth_w ~ z_ceo + z_cfo + {fe}", data=df).fit(**kw)
-        emit(f"  {'CEO + CFO jointly':<20} CEO {fit.params['z_ceo']:+.3f} "
-             f"(p={fit.pvalues['z_ceo']:.3f}) | CFO {fit.params['z_cfo']:+.3f} "
-             f"(p={fit.pvalues['z_cfo']:.3f})")
+        emit(
+            f"  {'CEO + CFO jointly':<20} CEO {fit.params['z_ceo']:+.3f} "
+            f"(p={fit.pvalues['z_ceo']:.3f}) | CFO {fit.params['z_cfo']:+.3f} "
+            f"(p={fit.pvalues['z_cfo']:.3f})"
+        )
 
     # ---- by attribution source / era ---------------------------------------
     # The two sources are also two transcript formats AND two eras, so this
@@ -114,8 +128,7 @@ def main() -> None:
             emit(f"[{source}] skipped, only {len(sub)} rows")
             continue
         kws = dict(cov_type="cluster", cov_kwds={"groups": sub["ticker"]})
-        line = [f"[{source}: {len(sub)} rows, years "
-                f"{sub['year'].min()}-{sub['year'].max()}]"]
+        line = [f"[{source}: {len(sub)} rows, years {sub['year'].min()}-{sub['year'].max()}]"]
         for var, label in [("z_ceo", "CEO"), ("z_cfo", "CFO")]:
             fit = smf.ols(f"growth_w ~ {var} + C(ticker)", data=sub).fit(**kws)
             line.append(f"{label} {fit.params[var]:+.3f} (p={fit.pvalues[var]:.3f})")
