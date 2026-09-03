@@ -1,0 +1,9 @@
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    # dev convenience: live-reload against the working tree
+    volumes:
+      - ./earnings_signals:/app/earnings_signals:ro
+    command: uvicorn earnings_signals.api:app --host 0.0.0.0 --port 8000 --reload

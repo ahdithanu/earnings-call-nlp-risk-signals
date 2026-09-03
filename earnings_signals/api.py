@@ -24,12 +24,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from earnings_signals.exec_roles import exec_qa_by_role
-from earnings_signals.lexicon import CONTROL_LOADERS, load_uncertainty_terms
+from earnings_signals.lexicon import REPO_ROOT, CONTROL_LOADERS, load_uncertainty_terms
 from earnings_signals.qa_extract import extract_qa
 from earnings_signals.qa_isolation import isolate_executive_qa
 from earnings_signals.uncertainty import count_uncertainty
 
-SIGNALS_CSV = Path(__file__).resolve().parent.parent / "results" / "latest_uncertainty_signals.csv"
+SIGNALS_CSV = REPO_ROOT / "results" / "latest_uncertainty_signals.csv"
 MAX_TEXT_BYTES = 1_000_000  # one transcript is ~50KB; 1MB is generous
 
 try:

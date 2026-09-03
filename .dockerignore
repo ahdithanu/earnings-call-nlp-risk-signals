@@ -1,0 +1,16 @@
+.git
+.github
+.venv
+__pycache__
+*.pyc
+data/
+web/
+tests/
+scripts/
+docs/
+results/*
+!results/latest_uncertainty_signals.csv
+*.parquet
+.pytest_cache
+.mypy_cache
+.ruff_cache
