@@ -152,7 +152,8 @@ from src.uncertainty import count_uncertainty
 lexicon = load_uncertainty_terms()
 result = count_uncertainty(
     "We believe revenue could potentially exceed expectations, "
-    "though there is no material risk to our guidance.", lexicon,
+    "though there is no material risk to our guidance.",
+    lexicon,
 )
 print(result.uncertainty_count, result.negation_excluded, result.density)
 ```
