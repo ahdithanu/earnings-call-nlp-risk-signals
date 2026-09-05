@@ -1,6 +1,6 @@
 import pytest
 
-from src.lexicon import (
+from earnings_signals.lexicon import (
     CONTROL_LOADERS,
     load_constraining_terms,
     load_lexicon,

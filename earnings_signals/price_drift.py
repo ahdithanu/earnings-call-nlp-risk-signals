@@ -16,12 +16,13 @@ Pure and unit-tested; the network fetch lives in scripts/fetch_prices.py.
 
 import bisect
 
-REACT_HORIZON = 5    # trading days: immediate post-call reaction
-DRIFT_HORIZON = 63   # trading days: ≈ one quarter of drift
+REACT_HORIZON = 5  # trading days: immediate post-call reaction
+DRIFT_HORIZON = 63  # trading days: ≈ one quarter of drift
 
 
-def forward_return(dates: list[str], closes: list[float], anchor: str,
-                   horizon: int) -> float | None:
+def forward_return(
+    dates: list[str], closes: list[float], anchor: str, horizon: int
+) -> float | None:
     """Percent return from the first close on/after ``anchor`` to ``horizon``
     trading days later. None if the series doesn't reach that far.
 

@@ -23,15 +23,14 @@ import os
 
 os.environ.setdefault("HF_HUB_DISABLE_XET", "1")
 
-import numpy as np
 import pandas as pd
 import statsmodels.formula.api as smf
 from datasets import load_dataset
 
-from src.features import add_next_quarter_eps
-from src.lexicon import load_uncertainty_terms
-from src.qa_extract import extract_qa
-from src.uncertainty import count_uncertainty
+from earnings_signals.features import add_next_quarter_eps
+from earnings_signals.lexicon import load_uncertainty_terms
+from earnings_signals.qa_extract import extract_qa
+from earnings_signals.uncertainty import count_uncertainty
 
 DATASET = "glopardo/sp500-earnings-transcripts"
 OUT_TXT = "results/cross_sector_robustness.txt"
@@ -75,8 +74,11 @@ def main() -> None:
 
     # one row per (ticker, year, quarter): keep the longest transcript
     df["_tlen"] = df["transcript"].str.len()
-    df = (df.sort_values("_tlen", ascending=False)
-            .drop_duplicates(["ticker", "year", "quarter"]).drop(columns="_tlen"))
+    df = (
+        df.sort_values("_tlen", ascending=False)
+        .drop_duplicates(["ticker", "year", "quarter"])
+        .drop(columns="_tlen")
+    )
 
     emit(f"scoring {len(df)} transcripts across {df['sector'].nunique()} sectors…")
     df["density"] = df["transcript"].apply(lambda t: score_row(t, lexicon))
@@ -96,14 +98,25 @@ def main() -> None:
         lo, hi = g["growth"].quantile([WINSOR_PCT, 1 - WINSOR_PCT])
         g["growth_w"] = g["growth"].clip(lo, hi)
         g["density_z"] = g.groupby("ticker")["density"].transform(
-            lambda s: (s - s.mean()) / s.std(ddof=0))
+            lambda s: (s - s.mean()) / s.std(ddof=0)
+        )
         g = g.dropna(subset=["density_z"])
         if len(g) < MIN_SECTOR_OBS or g["ticker"].nunique() < 5:
             continue
         fit = ticker_fe_fit(g)
-        b = fit.params["density_z"]; t = fit.tvalues["density_z"]; p = fit.pvalues["density_z"]
-        rows.append({"sector": sector, "n": int(len(g)), "tickers": int(g["ticker"].nunique()),
-                     "beta_pp": round(float(b), 3), "t": round(float(t), 2), "p": round(float(p), 4)})
+        b = fit.params["density_z"]
+        t = fit.tvalues["density_z"]
+        p = fit.pvalues["density_z"]
+        rows.append(
+            {
+                "sector": sector,
+                "n": int(len(g)),
+                "tickers": int(g["ticker"].nunique()),
+                "beta_pp": round(float(b), 3),
+                "t": round(float(t), 2),
+                "p": round(float(p), 4),
+            }
+        )
         emit(f"{sector:<26}{len(g):>6}{g['ticker'].nunique():>9}{b:>+10.3f}{t:>+7.2f}{p:>8.3f}")
 
     # pooled across all sectors: ticker + quarter FE (ticker FE absorbs sector)
@@ -111,20 +124,26 @@ def main() -> None:
     lo, hi = d["growth"].quantile([WINSOR_PCT, 1 - WINSOR_PCT])
     d["growth_w"] = d["growth"].clip(lo, hi)
     d["density_z"] = d.groupby("ticker")["density"].transform(
-        lambda s: (s - s.mean()) / s.std(ddof=0))
+        lambda s: (s - s.mean()) / s.std(ddof=0)
+    )
     d = d.dropna(subset=["density_z"])
     pooled = smf.ols("growth_w ~ density_z + C(ticker) + C(datacqtr)", data=d).fit(
-        cov_type="cluster", cov_kwds={"groups": d["ticker"]})
+        cov_type="cluster", cov_kwds={"groups": d["ticker"]}
+    )
     emit("\n=== pooled, ALL sectors (ticker + quarter FE, clustered by ticker) ===")
-    emit(f"coef on density_z = {pooled.params['density_z']:+.3f} pp per 1 SD "
-         f"(t={pooled.tvalues['density_z']:+.2f}, p={pooled.pvalues['density_z']:.3f}, "
-         f"n={int(pooled.nobs)}, {d['ticker'].nunique()} tickers, "
-         f"{d['sector'].nunique()} sectors)")
+    emit(
+        f"coef on density_z = {pooled.params['density_z']:+.3f} pp per 1 SD "
+        f"(t={pooled.tvalues['density_z']:+.2f}, p={pooled.pvalues['density_z']:.3f}, "
+        f"n={int(pooled.nobs)}, {d['ticker'].nunique()} tickers, "
+        f"{d['sector'].nunique()} sectors)"
+    )
 
     neg = sum(1 for r in rows if r["beta_pp"] < 0)
     sig = sum(1 for r in rows if r["p"] < 0.05 and r["beta_pp"] < 0)
-    emit(f"\nsectors with a negative coefficient: {neg}/{len(rows)} | "
-         f"negative AND p<0.05: {sig}/{len(rows)}")
+    emit(
+        f"\nsectors with a negative coefficient: {neg}/{len(rows)} | "
+        f"negative AND p<0.05: {sig}/{len(rows)}"
+    )
 
     os.makedirs("results", exist_ok=True)
     pd.DataFrame(rows).to_csv(OUT_CSV, index=False)

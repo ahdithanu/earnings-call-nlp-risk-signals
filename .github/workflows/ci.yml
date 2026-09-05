@@ -1,8 +1,10 @@
 name: CI
 
-# Runs the unit-test suite on every PR and on pushes to non-main branches.
-# The suite is offline (it exercises src/ against the committed lexicons and
-# small in-memory frames), so no dataset download or network access is needed.
+# Quality gates on every PR and on pushes to non-main branches: lint,
+# format, types, the unit-test suite with coverage, and a Docker build
+# check. The suite is offline (it exercises earnings_signals/ against the
+# committed lexicons and small in-memory frames), so no dataset download
+# or network access is needed.
 
 on:
   pull_request:
@@ -14,18 +16,71 @@ permissions:
   contents: read
 
 jobs:
-  test:
+  lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
           cache: pip
+      - run: pip install "ruff==0.15.8"
+      - name: Ruff lint
+        run: ruff check .
+      - name: Ruff format check
+        run: ruff format --check .
 
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Mypy
+        run: mypy
+
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
       - name: Install dependencies
         run: pip install -r requirements.txt
+      - name: Run tests with coverage
+        run: python -m pytest tests/ --cov --cov-report=term-missing
 
-      - name: Run tests
-        run: python -m pytest tests/ -q
+  data-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install pandas pyarrow
+      - name: Validate committed feature parquet
+        run: python -m scripts.validate_features
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image
+        run: docker build -t earnings-signals-api:ci .
+      - name: Smoke test container
+        run: |
+          docker run -d --rm -p 8000:8000 --name api earnings-signals-api:ci
+          for i in $(seq 1 20); do
+            curl -sf localhost:8000/healthz && break || sleep 1
+          done
+          curl -sf localhost:8000/healthz | grep -q '"status":"ok"'
+          docker stop api

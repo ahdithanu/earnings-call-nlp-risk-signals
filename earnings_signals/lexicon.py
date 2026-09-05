@@ -16,7 +16,22 @@ dictionary version; the uncertainty list matches it exactly on all 297 terms.
 
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
+
+def _data_root() -> Path:
+    """Directory holding the lm_*.txt lexicon files.
+
+    A checkout (or editable install) keeps them next to the package's
+    parent; a plain `pip install` (e.g. the Docker image) puts the package
+    in site-packages, where the container copies the lexicons into the
+    working directory instead — so fall back to CWD.
+    """
+    for candidate in (Path(__file__).resolve().parent.parent, Path.cwd()):
+        if (candidate / "lm_uncertainty_terms.txt").exists():
+            return candidate
+    return Path(__file__).resolve().parent.parent  # error paths report this
+
+
+REPO_ROOT = _data_root()
 DEFAULT_LEXICON_PATH = REPO_ROOT / "lm_uncertainty_terms.txt"
 NEGATIVE_LEXICON_PATH = REPO_ROOT / "lm_negative_terms.txt"
 POSITIVE_LEXICON_PATH = REPO_ROOT / "lm_positive_terms.txt"

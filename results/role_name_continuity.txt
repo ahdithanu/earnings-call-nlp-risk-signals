@@ -1,0 +1,95 @@
+=== role-name continuity across the 2018/2019 format boundary ===
+comparable ticker-roles: 708
+surname continuity: 87.7%
+
+mismatches (genuine transitions or parser artifacts, triage manually):
+ticker role    pre2019    post2019  match
+  ABBV  cfo      chase     michael  False
+   ABT  ceo      white        ford  False
+   ACN  ceo   nanterme     rowland  False
+   AES  cfo      flynn     pimenta  False
+   AIG  cfo   sankaran       lyons  False
+   AOS  ceo   rajendra     wheeler  False
+    BA  ceo muilenburg      boeing  False
+    BG  ceo   schroder     heckman  False
+   BMY  cfo   bancroft   bankcroft  False
+    BR  ceo       daly       gokey  False
+   BSX  ceo    mahoney      newton  False
+   BSX  cfo    brennan   cavanaugh  False
+   CAT  ceo    umpleby    bonfield  False
+   CAT  cfo   bonfield       creed  False
+   CLX  cfo       robb    jacobsen  False
+   CNC  ceo      smith    neidorff  False
+   CNC  cfo      rubin   schwaneke  False
+   CPB  ceo mcloughlin      clouse  False
+  CTRA  ceo     dinges      jorden  False
+  CTRA  cfo  schroeder     burford  False
+     D  ceo    farrell        blue  False
+  DECK  cfo     george    fasching  False
+   DFS  ceo      nelms  hochschild  False
+   DHR  cfo      comas      mcgrew  False
+   DVA  ceo      thiry    ackerman  False
+   DVA  cfo   ackerman   rodriguez  False
+  EBAY  ceo      wenig    schenkel  False
+  EBAY  cfo   schenkel      freiha  False
+  EQIX  ceo       camp      meyers  False
+   EQR  ceo neithercut     parrell  False
+   FMC  cfo     graves    sandifer  False
+  FTNT  ceo        xie    fortinet  False
+  FTNT  cfo      matto      jensen  False
+    GE  ceo   flannery        culp  False
+   GPN  ceo      sloan       kelly  False
+   GPN  cfo     bready      hodges  False
+   HAL  cfo      weber    loeffler  False
+   HCA  ceo    johnson       hazen  False
+    HD  cfo       tomé        tome  False
+   HIG  cfo    bombara    costello  False
+  HOLX  cfo    mcmahon     oberton  False
+  INCY  cfo     gryska   stamoulis  False
+  INTU  ceo      smith    goodarzi  False
+    IP  cfo     landau    nicholls  False
+   KMB  ceo       falk         hsu  False
+  LRCX  ceo    anstice      archer  False
+    MO  ceo barrington     willard  False
+   MOH  cfo      white        tran  False
+   MOS  cfo       mack    freeland  False
+   MRK  ceo    frazier       dable  False
+   MRK  cfo      davis  mclaughlin  False
+    MS  ceo      senay       faust  False
+   NEE  ceo   pimentel        robo  False
+   NEM  ceo   garofalo    goldberg  False
+   NEM  cfo      attew       buese  False
+  NFLX  cfo      wells     neumann  False
+   NKE  cfo    campion      parker  False
+   NOC  ceo       bush      warden  False
+   NSC  ceo    squires    southern  False
+     O  ceo        roy     rufrano  False
+     O  cfo     meurer  bartolotta  False
+    ON  cfo    guttman     gutmann  False
+  PARA  ceo    moonves   ianniello  False
+   PEP  ceo      nooyi    laguarta  False
+   PFE  ceo       read      bourla  False
+  PODD  ceo   sullivan    petrovic  False
+  POOL  ceo       mesa       arvan  False
+  SBUX  cfo        maw     grismer  False
+   SPG  cfo     juster      mcdade  False
+  SPGI  ceo      uggla    peterson  False
+  SPGI  cfo      hyatt steenbergen  False
+   STT  ceo     hooley      hanley  False
+   STX  cfo     mosley      romano  False
+   SYK  ceo       lang        lobo  False
+   SYK  cfo    spencer   boehnlein  False
+     T  ceo     lesser  stephenson  False
+   TDY  ceo  mehrabian    pichelli  False
+   TRV  ceo     schnit   schnitzer  False
+   UNP  cfo      scott      knight  False
+   VMC  ceo  sandbrook        hill  False
+   VMC  cfo       kunz        wood  False
+  VRTX  cfo     graney       silva  False
+   WAB  cfo     betler       dugan  False
+   WEC  ceo     klappa    fletcher  False
+    WY  ceo     simons   stockfish  False
+   XYL  ceo     decker   rajkowski  False
+   XYL  cfo  rajkowski      latino  False
+
+known-genuine CEO transitions in this window: ACN (Nanterme->Rowland), INTU (Smith->Goodarzi), LRCX (Anstice->Archer), TDY (Mehrabian->Pichelli); FTNT and STX changed CFOs. ON's 'guttman'/'gutmann' is a transcript spelling variant of the same person.

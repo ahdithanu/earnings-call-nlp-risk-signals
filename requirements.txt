@@ -1,7 +1,4 @@
-datasets>=2.19
-pandas>=2.0
-pyarrow>=14.0
-pytest>=8.0
-scipy>=1.11
-statsmodels>=0.14
-requests>=2.31
+# Single source of truth for dependencies is pyproject.toml; this file
+# exists so `pip install -r requirements.txt` (CI workflows, quick starts)
+# installs the package plus API and dev extras in editable mode.
+-e .[api,dev]

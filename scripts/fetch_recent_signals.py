@@ -1,6 +1,6 @@
 """Extend the explorer with recent quarters (2025Q2+) from a live source.
 
-The validated panel (data/processed/tech_uncertainty_features.parquet, from
+The validated panel (data/processed/sp500_uncertainty_features.parquet, from
 glopardo/sp500-earnings-transcripts) ends at 2025Q1. This script appends
 newer company-quarters scored from Rogersurf/earnings-call-transcripts,
 which runs through 2026, so the interactive explorer shows a current
@@ -40,11 +40,11 @@ import numpy as np
 import pandas as pd
 from datasets import load_dataset
 
-from src.lexicon import load_uncertainty_terms
-from src.qa_extract import extract_qa
-from src.uncertainty import count_uncertainty
+from earnings_signals.lexicon import load_uncertainty_terms
+from earnings_signals.qa_extract import extract_qa
+from earnings_signals.uncertainty import count_uncertainty
 
-PANEL = "data/processed/tech_uncertainty_features.parquet"
+PANEL = "data/processed/sp500_uncertainty_features.parquet"
 RECENT_DATASET = "Rogersurf/earnings-call-transcripts"
 OUT = "data/processed/recent_uncertainty_signals.parquet"
 MIN_QA_TOKENS = 500
@@ -68,7 +68,7 @@ def main() -> None:
     panel = pd.read_parquet(PANEL)
     universe = set(panel["ticker"].unique())
     # last calendar-quarter index present per ticker in the panel
-    panel_qidx = (panel["year"] * 4 + panel["quarter"] - 1)
+    panel_qidx = panel["year"] * 4 + panel["quarter"] - 1
     last_panel = panel_qidx.groupby(panel["ticker"]).max()
 
     raw = load_dataset(RECENT_DATASET)["train"].to_pandas()
@@ -107,23 +107,27 @@ def main() -> None:
     recent = df[df["qidx"] > df["last_panel_qidx"]].copy()
     recent = recent.sort_values(["ticker", "year", "quarter"])
 
-    out = pd.DataFrame({
-        "ticker": recent["ticker"],
-        "company": recent["company"],
-        "year": recent["year"].astype(int),
-        "quarter": recent["quarter"].astype(int),
-        "datacqtr": recent["datacqtr"],
-        "earnings_date": recent["cd"].dt.strftime("%Y-%m-%d"),
-        "qa_isolated": True,
-        "total_tokens_qa": recent["total_tokens_qa"].astype(int),
-        "uncertainty_density_qa": recent["uncertainty_density_qa"].astype(float),
-        "source": "rogersurf",
-    })
+    out = pd.DataFrame(
+        {
+            "ticker": recent["ticker"],
+            "company": recent["company"],
+            "year": recent["year"].astype(int),
+            "quarter": recent["quarter"].astype(int),
+            "datacqtr": recent["datacqtr"],
+            "earnings_date": recent["cd"].dt.strftime("%Y-%m-%d"),
+            "qa_isolated": True,
+            "total_tokens_qa": recent["total_tokens_qa"].astype(int),
+            "uncertainty_density_qa": recent["uncertainty_density_qa"].astype(float),
+            "source": "rogersurf",
+        }
+    )
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     out.to_parquet(OUT, index=False)
-    print(f"\nwrote {OUT}: {len(out)} recent company-quarters, "
-          f"{out['ticker'].nunique()} tickers, "
-          f"{out['datacqtr'].min()}–{out['datacqtr'].max()}")
+    print(
+        f"\nwrote {OUT}: {len(out)} recent company-quarters, "
+        f"{out['ticker'].nunique()} tickers, "
+        f"{out['datacqtr'].min()}–{out['datacqtr'].max()}"
+    )
     print("newest quarter counts:")
     print(out["datacqtr"].value_counts().sort_index().tail(6).to_string())
 

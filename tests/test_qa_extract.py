@@ -1,4 +1,4 @@
-from src.qa_extract import extract_qa, find_qa_start
+from earnings_signals.qa_extract import extract_qa, find_qa_start
 
 # Padding so markers land inside/outside the plausible-position window.
 REMARKS = "Revenue grew across all segments this quarter. " * 40

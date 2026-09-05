@@ -41,7 +41,7 @@ to explain the result away.
 import pandas as pd
 import statsmodels.formula.api as smf
 
-PARQUET = "data/processed/tech_uncertainty_features.parquet"
+PARQUET = "data/processed/sp500_uncertainty_features.parquet"
 OUT_CSV = "results/ttm_vs_single_quarter.csv"
 
 MIN_QA_TOKENS = 500
@@ -85,37 +85,42 @@ def main() -> None:
     common = df.dropna(subset=["density_z", "ttm_growth", "yoy_innovation"]).copy()
     common["ttm_growth_w"] = winsorize(common["ttm_growth"])
     common["yoy_innovation_w"] = winsorize(common["yoy_innovation"])
-    print(f"common sample: {len(common)} company-quarters, "
-          f"{common['ticker'].nunique()} tickers")
+    print(f"common sample: {len(common)} company-quarters, {common['ticker'].nunique()} tickers")
 
     rows = []
-    for outcome, col in [("ttm_growth", "ttm_growth_w"),
-                         ("yoy_innovation", "yoy_innovation_w")]:
+    for outcome, col in [("ttm_growth", "ttm_growth_w"), ("yoy_innovation", "yoy_innovation_w")]:
         for spec_label, fe in SPECS:
             fit = smf.ols(f"{col} ~ density_z + {fe}", data=common).fit(
                 cov_type="cluster", cov_kwds={"groups": common["ticker"]}
             )
-            rows.append({
-                "outcome": outcome,
-                "spec": spec_label,
-                "coef_density_z": fit.params["density_z"],
-                "se_cluster": fit.bse["density_z"],
-                "t": fit.tvalues["density_z"],
-                "p": fit.pvalues["density_z"],
-                "r2_within": within_r2(common, col, fe),
-                "n": int(fit.nobs),
-            })
+            rows.append(
+                {
+                    "outcome": outcome,
+                    "spec": spec_label,
+                    "coef_density_z": fit.params["density_z"],
+                    "se_cluster": fit.bse["density_z"],
+                    "t": fit.tvalues["density_z"],
+                    "p": fit.pvalues["density_z"],
+                    "r2_within": within_r2(common, col, fe),
+                    "n": int(fit.nobs),
+                }
+            )
 
     out = pd.DataFrame(rows)
     out.to_csv(OUT_CSV, index=False)
-    print("\n" + out.to_string(
-        index=False,
-        formatters={
-            "coef_density_z": "{:+.3f}".format, "se_cluster": "{:.3f}".format,
-            "t": "{:+.2f}".format, "p": "{:.4f}".format,
-            "r2_within": "{:.4f}".format,
-        },
-    ))
+    print(
+        "\n"
+        + out.to_string(
+            index=False,
+            formatters={
+                "coef_density_z": "{:+.3f}".format,
+                "se_cluster": "{:.3f}".format,
+                "t": "{:+.2f}".format,
+                "p": "{:.4f}".format,
+                "r2_within": "{:.4f}".format,
+            },
+        )
+    )
     print(f"\nwrote {OUT_CSV}")
 
 
