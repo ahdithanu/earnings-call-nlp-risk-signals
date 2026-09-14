@@ -181,7 +181,7 @@ def compose_terms(top_terms: list[tuple[str, int]], baseline_terms: list[str]) -
     if new:
         newly = ", ".join(f"“{t}”" for t in new[:3])
         return f"Driven by {listed}; {newly} {'is' if len(new[:3]) == 1 else 'are'} not part of this company's usual hedging vocabulary."
-    return f"Driven by {listed} — consistent with this company's usual hedging vocabulary, just more of it."
+    return f"Driven by {listed} — consistent with this company's usual hedging vocabulary."
 
 
 def compose_readout(
