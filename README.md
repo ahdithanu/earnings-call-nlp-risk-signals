@@ -70,6 +70,7 @@ docker pull ghcr.io/ahdithanu/earnings-signals-api:latest   # published on versi
 
 - `POST /score` — negation-aware uncertainty + LM tone densities for every scope derivable from the submitted text (full / Q&A / executive-only / CEO / CFO), with isolation flags and role provenance
 - `GET /signals` — the latest hedging watchlist
+- `GET /insight/{ticker}` — the **insight readout**: the numbers as sentences — level vs the company's own history, whether the CEO or CFO drove it, hedging-vs-bad-news character, the terms responsible, and the highest-density executive quotes as receipts. Composed deterministically from the data (`earnings_signals/insights.py`), so it is testable and cannot hallucinate; the same readouts power the explorer's per-company cards and [`results/weekly_brief.md`](results/weekly_brief.md). Rebuild with `make insights`.
 - `GET /healthz` — liveness + lexicon sanity; interactive docs at `/docs`
 
 Point the explorer's `signals-api` meta tag at a deployed instance and the site gains a live "score your own text" section (it stays fully static otherwise).

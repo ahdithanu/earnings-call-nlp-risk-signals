@@ -35,6 +35,10 @@ analyze:            ## rerun every analysis into results/
 	python -m scripts.analyze_exec_roles
 	python -m scripts.latest_signals
 
+insights:           ## rebuild insight readouts + the weekly brief
+	python -m scripts.build_insights
+	python -m scripts.weekly_brief
+
 site:               ## regenerate the self-contained explorer
 	python -m scripts.export_web_data
 

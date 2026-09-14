@@ -18,6 +18,7 @@ Choices, kept consistent with scripts/analyze_uncertainty_growth.py:
 """
 
 import json
+import os
 
 import numpy as np
 import pandas as pd
@@ -25,6 +26,7 @@ import pandas as pd
 PARQUET = "data/processed/sp500_uncertainty_features.parquet"
 RECENT = "data/processed/recent_uncertainty_signals.parquet"
 PANEL_STATS = "results/panel_stats.json"
+INSIGHTS_JSON = "data/processed/latest_insights.json"
 TEMPLATE = "web/index.template.html"
 OUT = "web/index.html"
 DATA_TOKEN = "__EMBEDDED_DATA__"
@@ -112,9 +114,21 @@ def main() -> None:
         "p": stats["p"],
     }
 
+    # Insight readouts (data/processed/latest_insights.json, built by
+    # scripts/build_insights.py): embedded per ticker so selecting any
+    # company shows its plain-English readout. Optional — the page renders
+    # without them if the artifact hasn't been built.
+    insights = {}
+    if os.path.exists(INSIGHTS_JSON):
+        with open(INSIGHTS_JSON, encoding="utf-8") as f:
+            insights = json.load(f).get("insights", {})
+
     # Inject the data inline into the standalone template. json.dumps is safe
     # to embed in a <script>, except for "</" which could close the tag early.
-    data_json = json.dumps({"panel": panel, "companies": companies}, separators=(",", ":"))
+    data_json = json.dumps(
+        {"panel": panel, "companies": companies, "insights": insights},
+        separators=(",", ":"),
+    )
     data_json = data_json.replace("</", "<\\/")
     with open(TEMPLATE, encoding="utf-8") as f:
         template = f.read()

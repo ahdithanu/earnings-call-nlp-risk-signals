@@ -2,13 +2,12 @@
 
 Exposes the pipeline's text-scoring machinery over HTTP:
 
-  POST /score    — score arbitrary transcript text: uncertainty + LM tone
-                   densities (negation-aware) for every derivable scope
-                   (full text; Q&A section; executive-only answers;
-                   CEO / CFO answers when a roster or intro attributes them)
-  GET  /signals  — the latest out-of-sample hedging watchlist (one row per
-                   ticker's most recent call, z-scored vs its own history)
-  GET  /healthz  — liveness + lexicon sanity
+  POST /score            — score arbitrary transcript text: uncertainty + LM
+                           tone densities (negation-aware) for every derivable
+                           scope (full; Q&A; executive-only; CEO / CFO)
+  GET  /signals          — the latest out-of-sample hedging watchlist
+  GET  /insight/{ticker} — plain-English readout of a company's latest call
+  GET  /healthz          — liveness + lexicon sanity
 
 Run locally:  uvicorn earnings_signals.api:app --reload
 The service is stateless (lexicons load once at startup); CORS is open
@@ -16,6 +15,7 @@ because /score is a read-only demo endpoint over caller-supplied text.
 """
 
 import csv
+import json
 from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as pkg_version
 
@@ -30,6 +30,7 @@ from earnings_signals.qa_isolation import isolate_executive_qa
 from earnings_signals.uncertainty import count_uncertainty
 
 SIGNALS_CSV = REPO_ROOT / "results" / "latest_uncertainty_signals.csv"
+INSIGHTS_JSON = REPO_ROOT / "data" / "processed" / "latest_insights.json"
 MAX_TEXT_BYTES = 1_000_000  # one transcript is ~50KB; 1MB is generous
 
 try:
@@ -130,6 +131,26 @@ def signals(limit: int = 25) -> list[dict[str, str]]:
     with SIGNALS_CSV.open(encoding="utf-8") as f:
         rows = list(csv.DictReader(f))
     return rows[:limit]
+
+
+@app.get("/insight/{ticker}")
+def insight(ticker: str) -> dict:
+    """Plain-English readout of a company's latest call: level vs its own
+    history, CEO-vs-CFO driver, tone character, driving terms, and the
+    highest-density executive sentences — composed deterministically from
+    the data by scripts/build_insights.py (see earnings_signals/insights.py)."""
+    if not INSIGHTS_JSON.exists():
+        raise HTTPException(status_code=503, detail="insights not generated yet")
+    with INSIGHTS_JSON.open(encoding="utf-8") as f:
+        payload = json.load(f)
+    readout = payload.get("insights", {}).get(ticker.upper())
+    if readout is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"no readout for {ticker.upper()!r} — ticker not in the panel "
+            "or too little history to benchmark",
+        )
+    return {"generated": payload.get("generated"), **readout}
 
 
 @app.get("/healthz", response_model=HealthResponse)

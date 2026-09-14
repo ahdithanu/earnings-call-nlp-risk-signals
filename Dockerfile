@@ -18,6 +18,7 @@ RUN pip install ".[api]"
 COPY lm_uncertainty_terms.txt lm_negative_terms.txt lm_positive_terms.txt \
      lm_litigious_terms.txt lm_constraining_terms.txt ./
 COPY results/latest_uncertainty_signals.csv ./results/latest_uncertainty_signals.csv
+COPY data/processed/latest_insights.json ./data/processed/latest_insights.json
 
 RUN useradd --create-home appuser
 USER appuser
