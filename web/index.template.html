@@ -96,6 +96,17 @@
         <svg id="chart" viewBox="0 0 880 360" style="display: block; width: 100%; height: auto;"></svg>
       </div>
 
+      <!-- insight readout: the numbers, in sentences, with receipts -->
+      <div id="readoutCard" hidden style="border: 1px solid #2b3345; background: #131725; margin-top: 20px; padding: 22px 24px;">
+        <div style="display: flex; justify-content: space-between; gap: 12px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.14em; color: #5b6478; margin-bottom: 10px;">
+          <span>READOUT — LATEST CALL (<span id="roQuarter"></span>)</span><span style="color: #e0ae5f;">DERIVED FROM THE DATA, NOT WRITTEN BY HAND</span>
+        </div>
+        <div id="roHeadline" style="font-size: 19px; font-weight: 600; color: #e8eaf0; margin-bottom: 12px; text-wrap: balance;"></div>
+        <div id="roBody" style="display: flex; flex-direction: column; gap: 8px; color: #a7aec0; font-size: 14.5px; max-width: 80ch; text-wrap: pretty;"></div>
+        <div id="roExcerpts" style="margin-top: 14px; display: flex; flex-direction: column; gap: 10px;"></div>
+        <div id="roCaveat" style="margin-top: 14px; font-size: 12.5px; color: #5b6478; max-width: 80ch; text-wrap: pretty;"></div>
+      </div>
+
       <!-- per-company stat + caveat -->
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-top: 20px;">
         <div style="border: 1px solid #2b3345; background: #131725; padding: 22px 24px; display: flex; flex-direction: column; gap: 8px;">
@@ -330,7 +341,39 @@ function selectCompany(t) {
   $("ticker-search").value = "";
   closeDropdown();
   renderSelection();
+  renderReadout();
   drawChart();
+}
+
+// ---------- insight readout ----------
+const INSIGHTS = DATA.insights || {};
+const ROLE_LABEL = { ceo: "CEO", cfo: "CFO", exec: "EXECUTIVE" };
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+function highlightTerms(text, terms) {
+  let html = escapeHtml(text);
+  for (const t of terms || []) {
+    const re = new RegExp("\\b(" + t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + ")\\b", "gi");
+    html = html.replace(re, '<span style="color:#e0ae5f;border-bottom:1px solid #e0ae5f;">$1</span>');
+  }
+  return html;
+}
+function renderReadout() {
+  const card = $("readoutCard");
+  const ro = INSIGHTS[selected];
+  if (!ro) { card.hidden = true; return; }
+  card.hidden = false;
+  $("roQuarter").textContent = ro.quarter;
+  $("roHeadline").textContent = ro.headline;
+  $("roBody").innerHTML = [ro.claim, ro.driver, ro.character, ro.terms]
+    .map((p) => "<div>" + escapeHtml(p) + "</div>").join("");
+  $("roExcerpts").innerHTML = (ro.excerpts || []).map((e) =>
+    '<blockquote style="margin:0;border-left:2px solid #e0ae5f;padding:8px 14px;background:#151926;' +
+    "font-family:'IBM Plex Mono',monospace;font-size:13px;line-height:1.8;color:#a7aec0;\">" +
+    '<span style="color:#5b6478;font-size:11px;letter-spacing:0.1em;">' + (ROLE_LABEL[e.speaker_role] || "EXEC") + " · </span>" +
+    "“" + highlightTerms(e.text, e.matched_terms) + "”</blockquote>").join("");
+  $("roCaveat").textContent = ro.caveat || "";
 }
 
 // ---------- search ----------

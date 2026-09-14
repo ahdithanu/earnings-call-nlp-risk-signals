@@ -67,3 +67,16 @@ def test_signals_endpoint():
         rows = r.json()
         assert 0 < len(rows) <= 5
         assert {"ticker", "density_z", "quarter"} <= set(rows[0])
+
+
+def test_insight_endpoint():
+    r = client.get("/insight/NVDA")
+    # 200 once data/processed/latest_insights.json is committed; 503 if absent
+    assert r.status_code in (200, 503)
+    if r.status_code == 200:
+        body = r.json()
+        assert {"headline", "claim", "driver", "character", "terms", "caveat"} <= set(body)
+        assert body["ticker"] == "NVDA"
+        # lowercase ticker resolves too
+        assert client.get("/insight/nvda").status_code == 200
+        assert client.get("/insight/NOTATICKER").status_code == 404
