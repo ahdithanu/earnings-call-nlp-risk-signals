@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Price outcomes: pluggable price provider — Alpha Vantage in addition to
+  FMP (`earnings_signals/price_providers.py`). `PRICE_PROVIDER` selects
+  auto/fmp/alphavantage; the fetch is resumable so Alpha Vantage's ~25/day
+  free tier accumulates coverage across runs. Response parsing is unit-tested
+  (66 tests). The price-outcomes workflow now takes either secret.
 ## v1.0.0 — 2026-09-03
 
 First tagged release: the project graduates from analysis scripts to a

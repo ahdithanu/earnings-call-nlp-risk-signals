@@ -50,7 +50,7 @@ Full table: [`results/cross_sector_robustness.txt`](results/cross_sector_robustn
 
 ## Price outcomes (post-call drift)
 
-Does hedging predict the *stock*, not just EPS? [`scripts/fetch_prices.py`](scripts/fetch_prices.py) builds a post-call return outcome — the immediate 5-day reaction and the ~1-quarter drift — from [Financial Modeling Prep](https://financialmodelingprep.com/), and [`scripts/analyze_price_drift.py`](scripts/analyze_price_drift.py) runs the *same* fixed-effects test with the return as the outcome. The drift math is unit-tested; because the fetch needs a price-API key and open network egress, it runs via the `price-outcomes` GitHub Actions workflow — add an `FMP_API_KEY` repo secret (Settings → Secrets and variables → Actions) and dispatch it. Results land in `results/price_drift.txt`.
+Does hedging predict the *stock*, not just EPS? [`scripts/fetch_prices.py`](scripts/fetch_prices.py) builds a post-call return outcome — the immediate 5-day reaction and the ~1-quarter drift — and [`scripts/analyze_price_drift.py`](scripts/analyze_price_drift.py) runs the *same* fixed-effects test with the return as the outcome. The price source is pluggable ([`earnings_signals/price_providers.py`](earnings_signals/price_providers.py)): set **`FMP_API_KEY`** ([Financial Modeling Prep](https://financialmodelingprep.com/) — bulk-friendly, one run covers the panel) **and/or `ALPHAVANTAGE_API_KEY`** ([Alpha Vantage](https://www.alphavantage.co/) — whose free tier is ~25 requests/day, so the fetch is *resumable*: rerun to accumulate coverage). `auto` prefers FMP when present. The drift math and the response parsing are unit-tested; because the live fetch needs a key and open egress, it runs via the `price-outcomes` GitHub Actions workflow — add either secret (Settings → Secrets and variables → Actions) and dispatch it. Results land in `results/price_drift.txt`.
 
 ## Forward-Looking Signals
 
@@ -110,7 +110,7 @@ Point the explorer's `signals-api` meta tag at a deployed instance and the site 
 │   ├── analyze_execqa_robustness.py        # exec-only vs full-Q&A robustness
 │   ├── analyze_exec_roles.py               # CEO-vs-CFO role analysis
 │   ├── validate_role_names.py              # cross-reference parsed exec names
-│   ├── fetch_prices.py                     # post-call prices from FMP (needs FMP_API_KEY)
+│   ├── fetch_prices.py                     # post-call prices (FMP or Alpha Vantage)
 │   ├── analyze_price_drift.py              # does hedging predict returns, not just EPS?
 │   ├── latest_signals.py                   # forward-looking monitoring report
 │   └── export_web_data.py                  # renders self-contained web/index.html from the parquet
@@ -172,7 +172,7 @@ print(result.uncertainty_count, result.negation_excluded, result.density)
 - [x] Executive-only scoring — analyst questions stripped from the signal (98% attribution)
 - [x] CEO/CFO role split — roster + intro-prose attribution, validated across the 2018/2019 format change; CEO hedging is the carrier
 - [x] Full S&P 500 primary panel — all 11 GICS sectors, sector heterogeneity as an analysis dimension
-- [x] Price-based outcomes scaffolded — post-call drift fetch + regression + CI workflow (activate with an `FMP_API_KEY` secret)
+- [x] Price-based outcomes scaffolded — post-call drift fetch (FMP **or** Alpha Vantage) + regression + CI workflow (activate with an `FMP_API_KEY` or `ALPHAVANTAGE_API_KEY` secret)
 
 ## License
 
