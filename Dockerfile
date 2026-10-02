@@ -5,20 +5,27 @@ FROM python:3.12-slim AS base
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PIP_NO_CACHE_DIR=1
+    PIP_NO_CACHE_DIR=1 \
+    HF_HOME=/opt/hf-cache
 
 WORKDIR /app
 
 # Install deps first for layer caching: metadata + package only.
 COPY pyproject.toml README.md ./
 COPY earnings_signals ./earnings_signals
-RUN pip install ".[api]"
+RUN pip install ".[api,rag]"
+
+# Bake the embedding model into the image (~30MB) so /ask needs no network
+# or model download at runtime; world-readable for the non-root user.
+RUN python -c "from model2vec import StaticModel; StaticModel.from_pretrained('minishlab/potion-base-8M')" \
+    && chmod -R a+rX /opt/hf-cache
 
 # Data the service reads at runtime.
 COPY lm_uncertainty_terms.txt lm_negative_terms.txt lm_positive_terms.txt \
      lm_litigious_terms.txt lm_constraining_terms.txt ./
 COPY results/latest_uncertainty_signals.csv ./results/latest_uncertainty_signals.csv
 COPY data/processed/latest_insights.json ./data/processed/latest_insights.json
+COPY data/processed/rag_index ./data/processed/rag_index
 
 RUN useradd --create-home appuser
 USER appuser

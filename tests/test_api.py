@@ -1,6 +1,7 @@
+import pytest
 from fastapi.testclient import TestClient
 
-from earnings_signals.api import MAX_TEXT_BYTES, app
+from earnings_signals.api import _RAG_CACHE, MAX_TEXT_BYTES, app
 
 client = TestClient(app)
 
@@ -67,6 +68,82 @@ def test_signals_endpoint():
         rows = r.json()
         assert 0 < len(rows) <= 5
         assert {"ticker", "density_z", "quarter"} <= set(rows[0])
+
+
+@pytest.fixture
+def rag_index_env(tmp_path, monkeypatch):
+    """A tiny hashing-embedder index served via RAG_INDEX_DIR (hermetic)."""
+    from earnings_signals.rag import Chunk, HashingEmbedder, HybridIndex
+
+    chunks = [
+        Chunk(
+            chunk_id="ACME-2025Q1-000",
+            ticker="ACME",
+            company="Acme Corp",
+            sector="Industrials",
+            year=2025,
+            quarter=1,
+            speaker="jane doe",
+            text="We see meaningful supply chain disruptions in Vietnam and expect "
+            "freight costs to remain elevated through the first half of next year.",
+        ),
+        Chunk(
+            chunk_id="PHRM-2025Q1-000",
+            ticker="PHRM",
+            company="Pharma Inc",
+            sector="Health Care",
+            year=2025,
+            quarter=1,
+            speaker="pat kim",
+            text="Our pharmaceutical pipeline advanced with two new clinical trials "
+            "this year and enrollment is ahead of the original schedule.",
+        ),
+    ]
+    HybridIndex.build(chunks, HashingEmbedder(), scope="test fixture").save(tmp_path / "idx")
+    monkeypatch.setenv("RAG_INDEX_DIR", str(tmp_path / "idx"))
+    _RAG_CACHE.clear()
+    yield
+    _RAG_CACHE.clear()
+
+
+def test_ask_grounded_answer(rag_index_env):
+    r = client.post("/ask", json={"question": "What did they say about supply chain disruptions?"})
+    assert r.status_code == 200
+    body = r.json()
+    assert not body["refused"]
+    assert "supply chain disruptions" in body["answer"]
+    assert body["citations"][0]["ticker"] == "ACME"
+    assert body["index"]["n_chunks"] == 2
+    assert body["caveat"].endswith("not investment advice.")
+
+
+def test_ask_ticker_entitlement_filter(rag_index_env):
+    r = client.post(
+        "/ask",
+        json={"question": "What did they say about supply chains?", "tickers": ["PHRM"]},
+    )
+    body = r.json()
+    # ACME's chunk is masked out before ranking: either PHRM-only citations
+    # or an honest refusal, never the out-of-scope document
+    tickers = {c["ticker"] for c in body["citations"]}
+    assert "ACME" not in tickers
+
+
+def test_ask_refuses_out_of_kb(rag_index_env):
+    r = client.post("/ask", json={"question": "zzqx wvvt plargh fmoo kkjzy"})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["refused"] and body["answer"] is None
+
+
+def test_ask_validation_and_missing_index(tmp_path, monkeypatch):
+    monkeypatch.setenv("RAG_INDEX_DIR", str(tmp_path / "nowhere"))
+    _RAG_CACHE.clear()
+    assert client.post("/ask", json={"question": "hi"}).status_code == 422  # too short
+    r = client.post("/ask", json={"question": "a valid question?"})
+    assert r.status_code == 503
+    assert "not built" in r.json()["detail"]
+    _RAG_CACHE.clear()
 
 
 def test_insight_endpoint():

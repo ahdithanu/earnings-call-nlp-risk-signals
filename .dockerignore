@@ -5,6 +5,7 @@ __pycache__
 *.pyc
 data/**
 !data/processed/latest_insights.json
+!data/processed/rag_index/**
 web/
 tests/
 scripts/

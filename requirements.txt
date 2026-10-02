@@ -1,4 +1,4 @@
 # Single source of truth for dependencies is pyproject.toml; this file
 # exists so `pip install -r requirements.txt` (CI workflows, quick starts)
 # installs the package plus API and dev extras in editable mode.
--e .[api,dev]
+-e .[api,rag,dev]

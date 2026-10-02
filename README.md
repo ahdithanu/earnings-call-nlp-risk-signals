@@ -18,7 +18,9 @@ flowchart LR
     QG --> WL["watchlist\nout-of-sample z-scores"]
     RES --> WEB["static explorer\nGitHub Pages"]
     WL --> WEB
-    WL --> API["FastAPI service\n/score /signals /healthz\n(Docker, GHCR)"]
+    WL --> API["FastAPI service\n/score /ask /signals /healthz\n(Docker, GHCR)"]
+    DS --> RAG[("rag index\n55k exec-answer chunks\nBM25 + dense, RRF-fused")]
+    RAG --> API
     CRON["weekly cron\n+ failure alerts"] -.refreshes.-> WL
     CRON -.redeploys.-> WEB
 ```
@@ -71,9 +73,26 @@ docker pull ghcr.io/ahdithanu/earnings-signals-api:latest   # published on versi
 - `POST /score` — negation-aware uncertainty + LM tone densities for every scope derivable from the submitted text (full / Q&A / executive-only / CEO / CFO), with isolation flags and role provenance
 - `GET /signals` — the latest hedging watchlist
 - `GET /insight/{ticker}` — the **insight readout**: the numbers as sentences — level vs the company's own history, whether the CEO or CFO drove it, hedging-vs-bad-news character, the terms responsible, and the highest-density executive quotes as receipts. Composed deterministically from the data (`earnings_signals/insights.py`), so it is testable and cannot hallucinate; the same readouts power the explorer's per-company cards and [`results/weekly_brief.md`](results/weekly_brief.md). Rebuild with `make insights`.
+- `POST /ask` — **grounded Q&A over the transcripts** (see the next section)
 - `GET /healthz` — liveness + lexicon sanity; interactive docs at `/docs`
 
 Point the explorer's `signals-api` meta tag at a deployed instance and the site gains a live "score your own text" section (it stays fully static otherwise).
+
+## Ask the Transcripts (grounded Q&A)
+
+`POST /ask` answers natural-language questions over the earnings corpus — *"What is Apple saying about AI features on the iPhone?"* returns verbatim Tim Cook quotes across three quarters, each with a citation. The design (`earnings_signals/rag/`) is a complete retrieval-augmented pipeline with every choice measured, not assumed:
+
+- **Chunking is structure-aware:** the retrieval unit is one executive answer in the Q&A — the same speaker-turn attribution the feature pipeline uses — carrying ticker/sector/quarter/speaker metadata. 55,289 chunks from the most recent 4 quarters (scope is a one-line config; the artifact records it in `meta.json`).
+- **Retrieval is hybrid:** BM25 (exact terms: tickers, "tariffs", product names) fused with dense embeddings (paraphrase) by reciprocal rank fusion. The embedder is model2vec's `potion-base-8M` — static embeddings with pure-numpy inference, a deliberate trade: ~30MB of weights instead of a ~2GB torch stack, with BM25 fusion recovering most of the quality gap.
+- **Retrieval is measured:** [`results/rag_eval.txt`](results/rag_eval.txt) (rebuild with `make rag-eval`) reports recall@K and MRR for bm25/dense/hybrid on a synthetic query-inversion set — hybrid hits **100% call-level recall@20** (dense alone: 91%) — so K and fusion are tuned numbers, not guesses.
+- **Answers are structurally grounded:** composed ONLY of verbatim corpus sentences, each cited `[n]` to its chunk — the same no-hallucination-by-construction philosophy as the insight readouts. Out-of-knowledge-base questions are **refused** (threshold calibrated on measured junk-vs-real score distributions: 22/25 junk refused, 50/50 real questions answered).
+- **Permissions are enforced at retrieval:** ticker filters mask documents *before* ranking, so an entitlement-scoped caller's excluded documents never reach scoring — not post-filtered from the response.
+
+```bash
+make rag-index   # rebuild the index artifact (data/processed/rag_index/)
+curl -s localhost:8000/ask -X POST -H 'content-type: application/json' \
+  -d '{"question": "What are executives saying about tariff impacts?", "k": 5}'
+```
 
 **AWS deployment** is fully codified: [`infra/aws/bootstrap.yaml`](infra/aws/bootstrap.yaml) (ECR + a GitHub-OIDC deploy role, applied once in CloudFormation — no AWS keys anywhere) and the [`Deploy to AWS`](.github/workflows/deploy-aws.yml) workflow, which builds to ECR and runs the service on App Runner with `/healthz` health checks. Walkthrough: [`docs/DEPLOY_AWS.md`](docs/DEPLOY_AWS.md).
 
@@ -113,6 +132,8 @@ Point the explorer's `signals-api` meta tag at a deployed instance and the site 
 │   ├── fetch_prices.py                     # post-call prices from FMP (needs FMP_API_KEY)
 │   ├── analyze_price_drift.py              # does hedging predict returns, not just EPS?
 │   ├── latest_signals.py                   # forward-looking monitoring report
+│   ├── build_rag_index.py                  # chunk + embed exec answers → retrieval index
+│   ├── eval_rag.py                         # recall@K / MRR / refusal eval → results/rag_eval.txt
 │   └── export_web_data.py                  # renders self-contained web/index.html from the parquet
 ├── web/                                    # self-contained explorer: index.template.html (source) → index.html (generated, data inlined)
 ├── earnings_signals/
@@ -122,9 +143,11 @@ Point the explorer's `signals-api` meta tag at a deployed instance and the site 
 │   ├── qa_isolation.py                     # executive-only answer attribution within the Q&A
 │   ├── exec_roles.py                       # CEO/CFO/IR role attribution (roster + intro prose)
 │   ├── features.py                         # forward EPS shift with quarter-gap guard
+│   ├── insights.py                         # deterministic readouts: numbers → sentences
+│   ├── rag/                                # grounded Q&A: chunking, hybrid index, answers
 │   ├── price_drift.py                      # post-call return math (unit-tested)
 │   └── universe.py                         # the universe rule — single edit point to change scope
-├── tests/                                  # 43 unit tests
+├── tests/                                  # 71 unit tests
 ├── lm_uncertainty_terms.txt                # full 297-term LM uncertainty category
 ├── lm_negative_terms.txt                   # full 2,355-term LM negative category (tone control)
 ├── lm_positive_terms.txt                   # full 354-term LM positive category (tone control)
@@ -136,7 +159,7 @@ Point the explorer's `signals-api` meta tag at a deployed instance and the site 
 
 ```bash
 pip install -r requirements.txt
-python -m pytest tests/            # 43 tests
+python -m pytest tests/            # 71 tests
 python -m scripts.build_features   # rebuilds the parquet (downloads dataset on first run)
 python -m scripts.analyze_uncertainty_growth
 python -m scripts.latest_signals       # score each ticker's most recent call
@@ -147,8 +170,8 @@ python -m scripts.export_web_data      # render web/index.html (panel + recent, 
 Score any text directly:
 
 ```python
-from src.lexicon import load_uncertainty_terms
-from src.uncertainty import count_uncertainty
+from earnings_signals.lexicon import load_uncertainty_terms
+from earnings_signals.uncertainty import count_uncertainty
 
 lexicon = load_uncertainty_terms()
 result = count_uncertainty(
@@ -173,6 +196,8 @@ print(result.uncertainty_count, result.negation_excluded, result.density)
 - [x] CEO/CFO role split — roster + intro-prose attribution, validated across the 2018/2019 format change; CEO hedging is the carrier
 - [x] Full S&P 500 primary panel — all 11 GICS sectors, sector heterogeneity as an analysis dimension
 - [x] Price-based outcomes scaffolded — post-call drift fetch + regression + CI workflow (activate with an `FMP_API_KEY` secret)
+- [x] Grounded Q&A over the corpus — hybrid retrieval (BM25 + dense, RRF), verbatim cited answers, measured recall@K, calibrated refusal
+- [ ] Intent router in front of `/ask` — classify in-scope vs out-of-scope questions before retrieval (the refusal threshold catches gibberish; lexically-overlapping off-topic questions need a router)
 
 ## License
 

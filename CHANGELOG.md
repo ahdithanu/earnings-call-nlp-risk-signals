@@ -1,5 +1,35 @@
 # Changelog
 
+## v1.1.0 — unreleased
+
+The words join the numbers: plain-English insight readouts, and grounded
+question-answering over the transcript corpus.
+
+### Ask the transcripts (`POST /ask`, `earnings_signals/rag/`)
+- Speaker-turn chunking of executive Q&A answers (55,289 chunks, most
+  recent 4 quarters) with ticker/sector/quarter/speaker metadata
+- Hybrid retrieval: BM25 + static dense embeddings (model2vec
+  `potion-base-8M` — numpy inference, no torch), fused with reciprocal
+  rank fusion; ticker filters masked before ranking (entitlement model)
+- Structurally grounded answers: verbatim corpus sentences only, each
+  cited; out-of-KB questions refused on a threshold calibrated against
+  measured junk-vs-real score distributions
+- Retrieval eval harness (`make rag-eval` → `results/rag_eval.txt`):
+  recall@K + MRR ablation across bm25/dense/hybrid — hybrid reaches 100%
+  call-level recall@20 — plus a refusal check
+- Index artifact committed (`data/processed/rag_index/`, 36MB) and baked
+  into the Docker image with the embedding model (no network at runtime)
+
+### Insight readouts (`GET /insight/{ticker}`, `earnings_signals/insights.py`)
+- Deterministic plain-English readouts for every company's latest call:
+  level vs own history, CEO-vs-CFO driver, hedging-vs-bad-news character,
+  driving terms vs the company's usual vocabulary, excerpt receipts
+- Powers the explorer's per-company cards and `results/weekly_brief.md`
+
+### Engineering
+- 71 unit tests (hermetic RAG tests via a hashing embedder — no model
+  download in CI)
+
 ## v1.0.0 — 2026-09-03
 
 First tagged release: the project graduates from analysis scripts to a
