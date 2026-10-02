@@ -35,6 +35,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Bake the latest published retrieval index into the image so /ask
+      # works on the deployed service (optional: without it /ask 503s).
+      - name: Fetch retrieval index (optional)
+        run: python3 -m scripts.fetch_rag_index || echo "::warning::no rag-index release yet; /ask disabled in this image"
+
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}

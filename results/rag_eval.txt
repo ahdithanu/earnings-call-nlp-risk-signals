@@ -1,18 +1,18 @@
 === retrieval eval: synthetic query inversion ===
-index: executive Q&A answers, last 4 quarters (from 2024Q2) — 55289 chunks, embedder potion-base-8M
+index: executive Q&A answers, last 6 quarters (from 2025Q1) — 54282 chunks, embedder potion-base-8M
 queries: 200 (seed 7), relevance = source chunk / source call
-example query: 'What did Garmin executives say about chartplotters trolling robustness installing boats?'
+example query: 'What did Goldman Sachs executives say about advisory referring okay fees sorry?'
 
 mode     level  recall@1   recall@5   recall@10  recall@20   MRR
-bm25     chunk     99.5%    100.0%    100.0%    100.0%  0.998
-bm25     call     100.0%    100.0%    100.0%    100.0% 
-dense    chunk     58.5%     81.0%     87.0%     89.0%  0.682
-dense    call      62.5%     86.5%     90.0%     91.0% 
-hybrid   chunk     85.0%     95.0%     99.0%    100.0%  0.894
-hybrid   call      89.0%     97.0%     99.0%    100.0% 
+bm25     chunk     96.5%    100.0%    100.0%    100.0%  0.983
+bm25     call      98.0%    100.0%    100.0%    100.0% 
+dense    chunk     54.5%     74.0%     81.0%     87.0%  0.635
+dense    call      59.5%     78.0%     84.0%     89.0% 
+hybrid   chunk     79.0%     97.5%     98.5%    100.0%  0.869
+hybrid   call      85.5%     98.5%    100.0%    100.0% 
 
 === refusal check (answer layer) ===
-junk queries refused: 22/25
+junk queries refused: 25/25
 real queries answered: 50/50
 
 caveat: term-inversion queries share exact tokens with their source, which favors bm25; dense retrieval earns its keep on paraphrase, under-measured here. Fusion (hybrid) should match bm25 on these queries while adding robustness — that, not beating bm25, is the bar.

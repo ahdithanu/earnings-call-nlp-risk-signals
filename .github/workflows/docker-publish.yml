@@ -20,6 +20,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Bake the latest published retrieval index into the image so /ask
+      # works out of the box (optional: without it the image still works,
+      # /ask returns 503).
+      - name: Fetch retrieval index (optional)
+        run: python3 -m scripts.fetch_rag_index || echo "::warning::no rag-index release yet; /ask disabled in this image"
+
       - uses: docker/login-action@v3
         with:
           registry: ghcr.io

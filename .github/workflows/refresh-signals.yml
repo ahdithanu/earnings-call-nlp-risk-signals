@@ -55,6 +55,24 @@ jobs:
           python -m scripts.fetch_recent_signals
           python -m scripts.export_web_data
 
+      # The retrieval index behind POST /ask is a build artifact published
+      # to a rolling release, not a committed file (36MB weekly would bloat
+      # git history). Rebuilt here from the same two sources as the signal
+      # layers: validated panel up to its watermark, live source beyond it.
+      - name: Rebuild the RAG retrieval index
+        env:
+          HF_HUB_DISABLE_XET: "1"
+        run: python -m scripts.build_rag_index
+
+      - name: Publish the index to the rolling `rag-index` release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view rag-index >/dev/null 2>&1 || gh release create rag-index \
+            --prerelease --title "Rolling RAG index" \
+            --notes "Weekly-refreshed retrieval index behind POST /ask. Fetch with: python -m scripts.fetch_rag_index"
+          gh release upload rag-index data/processed/rag_index/* --clobber
+
       - name: Commit refreshed data if it changed
         id: commit
         run: |

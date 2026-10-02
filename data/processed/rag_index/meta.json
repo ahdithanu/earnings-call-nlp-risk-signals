@@ -1,7 +1,0 @@
-{
- "embedder": "potion-base-8M",
- "dim": 256,
- "n_chunks": 55289,
- "built": "2026-10-02",
- "scope": "executive Q&A answers, last 4 quarters (from 2024Q2)"
-}

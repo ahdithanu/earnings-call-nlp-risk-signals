@@ -20,12 +20,14 @@ RUN pip install ".[api,rag]"
 RUN python -c "from model2vec import StaticModel; StaticModel.from_pretrained('minishlab/potion-base-8M')" \
     && chmod -R a+rX /opt/hf-cache
 
-# Data the service reads at runtime.
+# Data the service reads at runtime. data/processed is filtered by
+# .dockerignore to the insights artifact plus — when fetched before the
+# build (scripts/fetch_rag_index.py) — the retrieval index behind /ask;
+# without the index the image still builds and /ask returns 503.
 COPY lm_uncertainty_terms.txt lm_negative_terms.txt lm_positive_terms.txt \
      lm_litigious_terms.txt lm_constraining_terms.txt ./
 COPY results/latest_uncertainty_signals.csv ./results/latest_uncertainty_signals.csv
-COPY data/processed/latest_insights.json ./data/processed/latest_insights.json
-COPY data/processed/rag_index ./data/processed/rag_index
+COPY data/processed ./data/processed
 
 RUN useradd --create-home appuser
 USER appuser

@@ -16,9 +16,17 @@ question-answering over the transcript corpus.
   measured junk-vs-real score distributions
 - Retrieval eval harness (`make rag-eval` → `results/rag_eval.txt`):
   recall@K + MRR ablation across bm25/dense/hybrid — hybrid reaches 100%
-  call-level recall@20 — plus a refusal check
-- Index artifact committed (`data/processed/rag_index/`, 36MB) and baked
-  into the Docker image with the embedding model (no network at runtime)
+  call-level recall@10 — plus a refusal check (25/25 junk refused)
+- Live ingestion: the index merges the validated panel source (up to its
+  watermark) with the Rogersurf live source beyond it, so /ask covers the
+  current earnings season (through 2026Q2); the chunker auto-detects the
+  two transcript formats (Seeking Alpha colon turns / Motley Fool
+  name--title headers, 98% coverage of live calls)
+- The index is a weekly build artifact, not a committed file: the Monday
+  refresh workflow rebuilds and publishes it to the rolling `rag-index`
+  GitHub release; `make rag-fetch` downloads it, and Docker/CI builds
+  bake it (with the embedding model) into the image — no network at
+  runtime, no 36MB/week of git history
 
 ### Insight readouts (`GET /insight/{ticker}`, `earnings_signals/insights.py`)
 - Deterministic plain-English readouts for every company's latest call:

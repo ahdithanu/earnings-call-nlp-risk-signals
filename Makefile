@@ -1,7 +1,7 @@
 # Developer entry points. Everything here is what CI runs, so `make check`
 # passing locally means the PR gates will pass too.
 
-.PHONY: install test lint format typecheck check build validate analyze site serve docker rag-index rag-eval
+.PHONY: install test lint format typecheck check build validate analyze site serve docker rag-index rag-fetch rag-eval
 
 install:            ## editable install with api+rag+dev extras
 	pip install -e ".[api,rag,dev]"
@@ -39,8 +39,11 @@ insights:           ## rebuild insight readouts + the weekly brief
 	python -m scripts.build_insights
 	python -m scripts.weekly_brief
 
-rag-index:          ## rebuild the retrieval index behind POST /ask
+rag-index:          ## rebuild the retrieval index behind POST /ask (both sources)
 	python -m scripts.build_rag_index
+
+rag-fetch:          ## download the weekly-published index instead of building
+	python -m scripts.fetch_rag_index
 
 rag-eval:           ## measure retrieval quality into results/rag_eval.txt
 	python -m scripts.eval_rag

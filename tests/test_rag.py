@@ -92,6 +92,46 @@ def test_chunking_empty_on_unparseable_call():
     )
 
 
+# A synthetic call in the Motley Fool format (the live Rogersurf source):
+# "Name\n--\nTitle" turn headers, a Questions & Answers section marker,
+# analyst turns identified by their title.
+MF_BODY = "We keep executing on the plan and see solid momentum everywhere. " * 2
+MF_SYNTHETIC = (
+    "Prepared Remarks:\n"
+    "\nOperator\n--\n\nGood morning and welcome to the Acme earnings call.\n"
+    f"\nJane Doe\n--\nChief Executive Officer\n\n{MF_BODY}\n"
+    f"\nJohn Roe\n--\nChief Financial Officer\n\n{MF_BODY}\n"
+    "Questions & Answers:\n"
+    "\nAmy Wu\n--\nBigBank -- Analyst\n\nWhat risks do you see to margins next year?\n"
+    "\nJane Doe\n--\nChief Executive Officer\n\nWe see meaningful supply chain "
+    "disruptions in Vietnam and expect freight costs to remain elevated through "
+    "the first half of next year overall.\n"
+    "\nBob Ray\n--\nOtherBank -- Analyst\n\nAnd on the cloud side?\n"
+    "\nJohn Roe\n--\nChief Financial Officer\n\nCloud revenue grew forty percent "
+    "this quarter and we expect that momentum to continue as enterprise demand "
+    "stays very strong across every region we serve today.\n"
+)
+
+
+def test_chunking_motley_fool_format():
+    chunks = chunk_transcript(
+        MF_SYNTHETIC,
+        ticker="ACME",
+        company="Acme Corp",
+        sector="Industrials",
+        year=2026,
+        quarter=1,
+        source="rogersurf",
+    )
+    # only the two Q&A executive answers: prepared remarks are before the
+    # marker, analyst turns are excluded by title
+    assert len(chunks) == 2
+    assert {c.speaker for c in chunks} == {"jane doe", "john roe"}
+    assert "supply chain disruptions" in chunks[0].text
+    assert "margins next year" not in " ".join(c.text for c in chunks)  # analyst text out
+    assert all(c.source == "rogersurf" and c.quarter_label == "2026Q1" for c in chunks)
+
+
 def test_hybrid_search_finds_exact_terms():
     index, emb = build_index()
     for mode in ("hybrid", "bm25", "dense"):

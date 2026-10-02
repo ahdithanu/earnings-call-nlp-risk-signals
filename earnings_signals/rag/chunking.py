@@ -14,6 +14,21 @@ Two adjustments keep chunk quality even:
 
 Every chunk carries the metadata retrieval filters on: ticker, sector,
 quarter, and the (normalized) speaker name.
+
+Two transcript formats are handled, auto-detected per call:
+
+  - Seeking Alpha style ("Name : words", roster header) — the validated
+    panel source; parsed by earnings_signals/qa_isolation.py.
+  - Motley Fool style ("Name\\n--\\nTitle\\n\\nwords" turn headers) — the
+    live Rogersurf source. Titles ride along with every turn, so executive
+    attribution is direct: drop turns titled Analyst and the Operator,
+    keep the rest, starting at the "Questions & Answers" marker (or the
+    first analyst-titled turn when the marker is missing).
+
+Measured on the 1,256 live calls beyond the panel watermark: the colon
+parser handles 86%, the Motley Fool parser another 12%; 2% parse as
+neither and yield no chunks (consistent with how the feature pipeline
+treats attribution failure).
 """
 
 import re
@@ -31,6 +46,52 @@ _SENTENCE_RE = re.compile(r"[^.!?]+[.!?]+|[^.!?]+$")
 # strip the courtesy prefix so speaker metadata stays a name.
 _SPEAKER_PREFIX_RE = re.compile(r"^(?:thanks?|thank you|yes|yeah|sure|okay|ok)\s+")
 
+# Motley Fool turn header: speaker name, "--" on its own line, then title.
+_MF_HEADER_RE = re.compile(r"\n([^\n]{2,60})\n--\n([^\n]{2,90})\n")
+_MF_MIN_HEADERS = 5  # fewer and the call is not in this format
+_MF_QA_RE = re.compile(r"questions?\s*(?:&(?:amp;)?|and)\s*answers?", re.IGNORECASE)
+
+
+def _norm_name(name: str) -> str:
+    return " ".join(re.findall(r"[a-zà-ÿ]+", name.lower()))
+
+
+def _mf_exec_qa_turns(transcript: str) -> list[tuple[str, str]] | None:
+    """Executive Q&A turns of a Motley Fool-format call.
+
+    Returns None when the transcript is not in this format (caller should
+    try the colon parser), and [] when it is but has no attributable
+    executive Q&A turns.
+    """
+    headers = list(_MF_HEADER_RE.finditer(transcript))
+    if len(headers) < _MF_MIN_HEADERS:
+        return None
+
+    qa_marker = _MF_QA_RE.search(transcript)
+    qa_start: int | None
+    if qa_marker is not None:
+        qa_start = qa_marker.start()
+    else:
+        qa_start = next(
+            (h.start() for h in headers if "analyst" in h.group(2).lower()),
+            None,
+        )
+    if qa_start is None:
+        return []
+
+    turns: list[tuple[str, str]] = []
+    for i, h in enumerate(headers):
+        if h.start() < qa_start:
+            continue
+        name, title = h.group(1).strip(), h.group(2).strip().lower()
+        if "analyst" in title or "operator" in (title, name.lower()):
+            continue
+        end = headers[i + 1].start() if i + 1 < len(headers) else len(transcript)
+        words = transcript[h.end() : end].strip()
+        if words:
+            turns.append((_norm_name(name), words))
+    return turns
+
 
 @dataclass
 class Chunk:
@@ -42,6 +103,7 @@ class Chunk:
     quarter: int
     speaker: str  # normalized speaker name ("" if unknown)
     text: str
+    source: str = ""  # transcript provenance, e.g. "panel" | "rogersurf"
 
     @property
     def quarter_label(self) -> str:
@@ -79,6 +141,7 @@ def chunk_transcript(
     sector: str,
     year: int,
     quarter: int,
+    source: str = "",
 ) -> list[Chunk]:
     """Executive Q&A turns of one call as retrieval chunks (possibly empty).
 
@@ -86,9 +149,13 @@ def chunk_transcript(
     chunks — consistent with the feature pipeline, which treats those
     scopes as missing rather than substituting the full transcript.
     """
-    turns, mode = executive_qa_turns(transcript)
-    if mode != "exec_turns":
-        return []
+    mf_turns = _mf_exec_qa_turns(transcript)
+    if mf_turns is not None:
+        turns = mf_turns
+    else:
+        turns, mode = executive_qa_turns(transcript)
+        if mode != "exec_turns":
+            return []
     chunks: list[Chunk] = []
     seq = 0
     for speaker, words in turns:
@@ -109,6 +176,7 @@ def chunk_transcript(
                     quarter=quarter,
                     speaker=speaker,
                     text=part,
+                    source=source,
                 )
             )
             seq += 1

@@ -82,14 +82,18 @@ Point the explorer's `signals-api` meta tag at a deployed instance and the site 
 
 `POST /ask` answers natural-language questions over the earnings corpus — *"What is Apple saying about AI features on the iPhone?"* returns verbatim Tim Cook quotes across three quarters, each with a citation. The design (`earnings_signals/rag/`) is a complete retrieval-augmented pipeline with every choice measured, not assumed:
 
-- **Chunking is structure-aware:** the retrieval unit is one executive answer in the Q&A — the same speaker-turn attribution the feature pipeline uses — carrying ticker/sector/quarter/speaker metadata. 55,289 chunks from the most recent 4 quarters (scope is a one-line config; the artifact records it in `meta.json`).
+- **Ingestion mirrors the pipeline's two-layer split:** chunks come from the validated panel source up to its watermark and from the live Rogersurf source beyond it (strictly newer quarters per ticker — no double-counting), so `/ask` quotes the **current earnings season**, not a frozen snapshot: ~54k chunks across the last 6 quarters, through 2026Q2. The two sources use different transcript formats (Seeking Alpha `Name :` turns vs Motley Fool `Name / -- / Title` headers); the chunker auto-detects per call — measured coverage 98% of live calls.
+- **Chunking is structure-aware:** the retrieval unit is one executive answer in the Q&A — the same speaker-turn attribution the feature pipeline uses — carrying ticker/sector/quarter/speaker/source metadata. Scope is a one-line config; the artifact records it in `meta.json`.
 - **Retrieval is hybrid:** BM25 (exact terms: tickers, "tariffs", product names) fused with dense embeddings (paraphrase) by reciprocal rank fusion. The embedder is model2vec's `potion-base-8M` — static embeddings with pure-numpy inference, a deliberate trade: ~30MB of weights instead of a ~2GB torch stack, with BM25 fusion recovering most of the quality gap.
-- **Retrieval is measured:** [`results/rag_eval.txt`](results/rag_eval.txt) (rebuild with `make rag-eval`) reports recall@K and MRR for bm25/dense/hybrid on a synthetic query-inversion set — hybrid hits **100% call-level recall@20** (dense alone: 91%) — so K and fusion are tuned numbers, not guesses.
+- **Retrieval is measured:** [`results/rag_eval.txt`](results/rag_eval.txt) (rebuild with `make rag-eval`) reports recall@K and MRR for bm25/dense/hybrid on a synthetic query-inversion set — hybrid hits **100% call-level recall@10** (dense alone: 84%) — so K and fusion are tuned numbers, not guesses.
 - **Answers are structurally grounded:** composed ONLY of verbatim corpus sentences, each cited `[n]` to its chunk — the same no-hallucination-by-construction philosophy as the insight readouts. Out-of-knowledge-base questions are **refused** (threshold calibrated on measured junk-vs-real score distributions: 22/25 junk refused, 50/50 real questions answered).
 - **Permissions are enforced at retrieval:** ticker filters mask documents *before* ranking, so an entitlement-scoped caller's excluded documents never reach scoring — not post-filtered from the response.
 
+The index is a **weekly-refreshed build artifact, not a committed file**: the Monday refresh workflow rebuilds it from both sources and publishes it to the rolling [`rag-index` release](https://github.com/ahdithanu/earnings-call-nlp-risk-signals/releases/tag/rag-index); Docker/CI builds bake it into the image.
+
 ```bash
-make rag-index   # rebuild the index artifact (data/processed/rag_index/)
+make rag-fetch   # download the latest published index (stdlib-only script)
+make rag-index   # ...or rebuild it from the sources yourself
 curl -s localhost:8000/ask -X POST -H 'content-type: application/json' \
   -d '{"question": "What are executives saying about tariff impacts?", "k": 5}'
 ```
@@ -185,7 +189,7 @@ print(result.uncertainty_count, result.negation_excluded, result.density)
 ## Data Sources
 
 - **Transcripts + EPS (validated panel, 2013–2025Q1):** [glopardo/sp500-earnings-transcripts](https://huggingface.co/datasets/glopardo/sp500-earnings-transcripts) (Hugging Face)
-- **Recent transcripts (explorer signal, through 2026):** [Rogersurf/earnings-call-transcripts](https://huggingface.co/datasets/Rogersurf/earnings-call-transcripts) (Hugging Face)
+- **Recent transcripts (explorer signal + `/ask` retrieval index, through 2026):** [Rogersurf/earnings-call-transcripts](https://huggingface.co/datasets/Rogersurf/earnings-call-transcripts) (Hugging Face; Motley Fool scrapes)
 - **Uncertainty Dictionary:** [Loughran-McDonald Master Dictionary](https://sraf.nd.edu/loughranmcdonald-master-dictionary/)
 
 ## Roadmap
