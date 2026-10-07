@@ -209,3 +209,7 @@ __marimo__/
 # RAG retrieval index: weekly build artifact published to the rolling
 # `rag-index` GitHub release (scripts/fetch_rag_index.py), never committed.
 data/processed/rag_index/
+
+# Alpha Vantage transcript attempt cache: persisted via the rolling
+# `rag-index` release between weekly runs, never committed.
+data/av_transcripts/

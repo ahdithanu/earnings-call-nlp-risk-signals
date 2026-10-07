@@ -19,9 +19,15 @@ question-answering over the transcript corpus.
   call-level recall@10 — plus a refusal check (25/25 junk refused)
 - Live ingestion: the index merges the validated panel source (up to its
   watermark) with the Rogersurf live source beyond it, so /ask covers the
-  current earnings season (through 2026Q2); the chunker auto-detects the
-  two transcript formats (Seeking Alpha colon turns / Motley Fool
-  name--title headers, 98% coverage of live calls)
+  current earnings season; the chunker auto-detects the two transcript
+  formats (Seeking Alpha colon turns / Motley Fool name--title headers,
+  98% coverage of live calls)
+- Direct-from-API ingestion: scripts/fetch_av_transcripts.py pulls
+  transcripts from Alpha Vantage's EARNINGS_CALL_TRANSCRIPT endpoint
+  (pre-segmented speaker turns) as a gap-filler for calls the datasets
+  lack — budget-limited and resumable against the ~25 req/day free tier,
+  with the attempt cache persisted via the rolling release; runs in the
+  weekly refresh when ALPHAVANTAGE_API_KEY is set, skips cleanly when not
 - The index is a weekly build artifact, not a committed file: the Monday
   refresh workflow rebuilds and publishes it to the rolling `rag-index`
   GitHub release; `make rag-fetch` downloads it, and Docker/CI builds

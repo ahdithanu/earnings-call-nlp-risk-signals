@@ -9,6 +9,11 @@ scripts/fetch_recent_signals.py):
                  scrapes through the current earnings season; only
                  quarters STRICTLY NEWER than each ticker's last panel
                  quarter are taken, so the sources never double-count
+  api source     Alpha Vantage transcripts fetched directly from the API
+                 (scripts/fetch_av_transcripts.py, needs
+                 ALPHAVANTAGE_API_KEY) — used only to FILL (ticker,
+                 quarter) pairs the dataset sources lack, closing the
+                 days-after-the-call freshness gap
 
 Scope: the most recent N quarters across the merged corpus (default 6,
 spanning the watermark). The full 2013+ history would be millions of
@@ -33,13 +38,14 @@ os.environ.setdefault("HF_HUB_DISABLE_XET", "1")
 import pandas as pd
 from datasets import load_dataset
 
-from earnings_signals.rag.chunking import Chunk, chunk_transcript
+from earnings_signals.rag.chunking import Chunk, chunk_transcript, chunks_from_turns
 from earnings_signals.rag.embedding import DEFAULT_MODEL, get_embedder
 from earnings_signals.rag.index import HybridIndex
 from earnings_signals.universe import select_universe
 
 PANEL_DATASET = "glopardo/sp500-earnings-transcripts"
 RECENT_DATASET = "Rogersurf/earnings-call-transcripts"
+AV_CACHE = "data/av_transcripts/av_transcripts.jsonl.gz"
 DEFAULT_OUT = "data/processed/rag_index"
 MIN_TRANSCRIPT_CHARS = 2000
 
@@ -88,6 +94,45 @@ def load_recent_calls(panel: pd.DataFrame) -> pd.DataFrame:
     return df[["ticker", "company", "sector", "year", "quarter", "transcript", "source"]]
 
 
+def av_gap_fill_chunks(
+    scoped_chunks: list[Chunk], cutoff: int, meta: pd.DataFrame
+) -> tuple[list[Chunk], int]:
+    """Chunks from the Alpha Vantage cache for in-window (ticker, quarter)
+    pairs no dataset source covered. The API labels transcripts by FISCAL
+    quarter, so it never overrides a calendar-labeled dataset call — it
+    only fills holes, which is where its days-after-the-call freshness
+    matters anyway."""
+    path = Path(AV_CACHE)
+    if not path.exists():
+        return [], 0
+    from earnings_signals.rag.av import exec_qa_turns_from_av
+    from scripts.fetch_av_transcripts import load_cache
+
+    covered = {(c.ticker, c.year, c.quarter) for c in scoped_chunks}
+    by_ticker = meta.drop_duplicates("ticker").set_index("ticker")
+    out: list[Chunk] = []
+    n_calls = 0
+    for (symbol, label), rec in sorted(load_cache(path).items()):
+        if rec["status"] != "ok" or symbol not in by_ticker.index:
+            continue
+        year, quarter = int(label[:4]), int(label[-1])
+        if year * 4 + quarter < cutoff or (symbol, year, quarter) in covered:
+            continue
+        call_chunks = chunks_from_turns(
+            exec_qa_turns_from_av(rec["turns"]),
+            ticker=symbol,
+            company=str(by_ticker.loc[symbol, "company"]),
+            sector=str(by_ticker.loc[symbol, "sector"]),
+            year=year,
+            quarter=quarter,
+            source="alphavantage",
+        )
+        if call_chunks:
+            out.extend(call_chunks)
+            n_calls += 1
+    return out, n_calls
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--quarters", type=int, default=6, help="most recent N quarters to index")
@@ -129,6 +174,11 @@ def main() -> None:
         f"chunks: {len(chunks)} from {len(scoped) - no_chunks} calls "
         f"({no_chunks} calls yielded none: no Q&A boundary / no exec attribution)"
     )
+
+    av_chunks, av_calls = av_gap_fill_chunks(chunks, cutoff, merged)
+    if av_calls:
+        chunks.extend(av_chunks)
+        print(f"alpha vantage gap-fill: +{len(av_chunks)} chunks from {av_calls} API calls")
 
     embedder = get_embedder(args.embedder)
     t0 = time.time()

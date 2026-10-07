@@ -29,6 +29,10 @@ concurrency:
 jobs:
   refresh:
     runs-on: ubuntu-latest
+    env:
+      # empty when the secret is not configured — the Alpha Vantage steps
+      # key their `if:` off this (secrets can't be tested in `if` directly)
+      ALPHAVANTAGE_API_KEY: ${{ secrets.ALPHAVANTAGE_API_KEY }}
     environment:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
@@ -55,10 +59,28 @@ jobs:
           python -m scripts.fetch_recent_signals
           python -m scripts.export_web_data
 
+      # Direct-from-API transcripts (days after a call, vs the datasets'
+      # scrape cadence). Skipped cleanly without the secret. The attempt
+      # cache persists between ephemeral runners via the rolling release,
+      # so Alpha Vantage's ~25 req/day free tier ACCUMULATES coverage.
+      - name: Seed the Alpha Vantage transcript cache from the rolling release
+        if: env.ALPHAVANTAGE_API_KEY != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p data/av_transcripts
+          gh release download rag-index --pattern av_transcripts.jsonl.gz \
+            --dir data/av_transcripts 2>/dev/null || echo "no cached transcripts yet"
+
+      - name: Fetch new transcripts from Alpha Vantage (budget-limited)
+        if: env.ALPHAVANTAGE_API_KEY != ''
+        run: python -m scripts.fetch_av_transcripts
+
       # The retrieval index behind POST /ask is a build artifact published
       # to a rolling release, not a committed file (36MB weekly would bloat
       # git history). Rebuilt here from the same two sources as the signal
-      # layers: validated panel up to its watermark, live source beyond it.
+      # layers — validated panel up to its watermark, live source beyond it —
+      # plus the Alpha Vantage cache as a gap-filler when the secret is set.
       - name: Rebuild the RAG retrieval index
         env:
           HF_HUB_DISABLE_XET: "1"
@@ -72,6 +94,9 @@ jobs:
             --prerelease --title "Rolling RAG index" \
             --notes "Weekly-refreshed retrieval index behind POST /ask. Fetch with: python -m scripts.fetch_rag_index"
           gh release upload rag-index data/processed/rag_index/* --clobber
+          if [ -f data/av_transcripts/av_transcripts.jsonl.gz ]; then
+            gh release upload rag-index data/av_transcripts/av_transcripts.jsonl.gz --clobber
+          fi
 
       - name: Commit refreshed data if it changed
         id: commit

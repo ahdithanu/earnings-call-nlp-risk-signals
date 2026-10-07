@@ -133,8 +133,8 @@ def _split_long_turn(text: str) -> list[str]:
     return pieces
 
 
-def chunk_transcript(
-    transcript: str,
+def chunks_from_turns(
+    turns: list[tuple[str, str]],
     *,
     ticker: str,
     company: str,
@@ -143,19 +143,12 @@ def chunk_transcript(
     quarter: int,
     source: str = "",
 ) -> list[Chunk]:
-    """Executive Q&A turns of one call as retrieval chunks (possibly empty).
+    """Retrieval chunks from already-attributed (speaker, words) exec turns.
 
-    Calls where the Q&A boundary or executive attribution fails yield no
-    chunks — consistent with the feature pipeline, which treats those
-    scopes as missing rather than substituting the full transcript.
+    The shared back half of every ingestion path: the two text parsers
+    below feed it, and so does the Alpha Vantage path (rag/av.py), whose
+    API returns pre-segmented turns that need no parsing at all.
     """
-    mf_turns = _mf_exec_qa_turns(transcript)
-    if mf_turns is not None:
-        turns = mf_turns
-    else:
-        turns, mode = executive_qa_turns(transcript)
-        if mode != "exec_turns":
-            return []
     chunks: list[Chunk] = []
     seq = 0
     for speaker, words in turns:
@@ -181,3 +174,37 @@ def chunk_transcript(
             )
             seq += 1
     return chunks
+
+
+def chunk_transcript(
+    transcript: str,
+    *,
+    ticker: str,
+    company: str,
+    sector: str,
+    year: int,
+    quarter: int,
+    source: str = "",
+) -> list[Chunk]:
+    """Executive Q&A turns of one call as retrieval chunks (possibly empty).
+
+    Calls where the Q&A boundary or executive attribution fails yield no
+    chunks — consistent with the feature pipeline, which treats those
+    scopes as missing rather than substituting the full transcript.
+    """
+    mf_turns = _mf_exec_qa_turns(transcript)
+    if mf_turns is not None:
+        turns = mf_turns
+    else:
+        turns, mode = executive_qa_turns(transcript)
+        if mode != "exec_turns":
+            return []
+    return chunks_from_turns(
+        turns,
+        ticker=ticker,
+        company=company,
+        sector=sector,
+        year=year,
+        quarter=quarter,
+        source=source,
+    )
