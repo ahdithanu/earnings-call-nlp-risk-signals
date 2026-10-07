@@ -1,14 +1,23 @@
 name: Price outcomes (post-call drift)
 
 # Builds the price-drift outcome that the restricted dev sandbox can't:
-# fetch_prices needs both an FMP key and open network egress, which the
-# GitHub runner has. Add the key as a repo secret named FMP_API_KEY
-# (Settings → Secrets and variables → Actions), then run this workflow.
-# Manual only — it hits an external paid API, so it should not run on a
-# schedule or on every push.
+# fetch_prices needs a price-API key and open network egress, which the
+# GitHub runner has. Add a repo secret — FMP_API_KEY (bulk-friendly) and/or
+# ALPHAVANTAGE_API_KEY (use when that's your key; free tier ~25 req/day, so
+# rerun to accumulate coverage) — under Settings → Secrets and variables →
+# Actions, then run this workflow. Manual only — it hits an external API.
 
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      provider:
+        description: "Price provider"
+        type: choice
+        options: [auto, fmp, alphavantage]
+        default: auto
+      max_tickers:
+        description: "Cap tickers this run (0 = all; use for AV free tier)"
+        default: "0"
 
 permissions:
   contents: write
@@ -34,10 +43,13 @@ jobs:
       - name: Fetch prices and analyze drift
         env:
           FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
+          ALPHAVANTAGE_API_KEY: ${{ secrets.ALPHAVANTAGE_API_KEY }}
+          PRICE_PROVIDER: ${{ inputs.provider }}
+          PRICE_MAX_TICKERS: ${{ inputs.max_tickers }}
           HF_HUB_DISABLE_XET: "1"
         run: |
-          if [ -z "$FMP_API_KEY" ]; then
-            echo "::error::FMP_API_KEY secret is not set. Add it under Settings → Secrets and variables → Actions."
+          if [ -z "$FMP_API_KEY" ] && [ -z "$ALPHAVANTAGE_API_KEY" ]; then
+            echo "::error::Set FMP_API_KEY or ALPHAVANTAGE_API_KEY as an Actions secret."
             exit 1
           fi
           python -m scripts.fetch_prices

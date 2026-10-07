@@ -35,6 +35,11 @@ question-answering over the transcript corpus.
 - Powers the explorer's per-company cards and `results/weekly_brief.md`
 
 ### Engineering
+- Price outcomes: pluggable price provider — Alpha Vantage in addition to
+  FMP (`earnings_signals/price_providers.py`). `PRICE_PROVIDER` selects
+  auto/fmp/alphavantage; the fetch is resumable so Alpha Vantage's ~25/day
+  free tier accumulates coverage across runs. Response parsing is
+  unit-tested. The price-outcomes workflow now takes either secret.
 - 71 unit tests (hermetic RAG tests via a hashing embedder — no model
   download in CI)
 
