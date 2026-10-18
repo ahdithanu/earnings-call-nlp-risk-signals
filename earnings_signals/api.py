@@ -110,6 +110,12 @@ class AskRequest(BaseModel):
         description="Restrict retrieval to these tickers (masked before ranking)",
     )
     k: int = Field(default=5, ge=1, le=10, description="Excerpt chunks to keep after fusion")
+    generate: bool = Field(
+        default=False,
+        description="Compose a fluent answer with Claude over the retrieved excerpts "
+        "(cite-or-refuse, groundedness-checked; needs ANTHROPIC_API_KEY on the server). "
+        "False returns the deterministic extractive answer.",
+    )
 
 
 class CitationModel(BaseModel):
@@ -125,9 +131,11 @@ class AskResponse(BaseModel):
     question: str
     refused: bool
     reason: str | None
-    answer: str | None  # verbatim cited excerpt sentences, or None when refused
+    answer: str | None  # cited answer text, or None when refused
     citations: list[CitationModel]
     caveat: str
+    mode: str  # "extractive" | "generative" | "extractive_fallback"
+    fallback_reason: str | None  # why generation fell back, when it did
     index: dict  # embedder, n_chunks, scope, built
 
 
@@ -201,9 +209,21 @@ def ask(req: AskRequest) -> AskResponse:
     answered badly. Ticker filters are applied before ranking — the
     entitlement model for callers scoped to a subset of the corpus."""
     index, embedder = _load_rag()
-    from earnings_signals.rag import answer_question
+    if req.generate:
+        if not os.environ.get("ANTHROPIC_API_KEY"):
+            raise HTTPException(
+                status_code=503,
+                detail="generative mode is not configured on this server "
+                "(no ANTHROPIC_API_KEY) — call with generate=false for the "
+                "extractive answer",
+            )
+        from earnings_signals.rag.generate import generate_answer
 
-    ans = answer_question(req.question, index, embedder, k_keep=req.k, tickers=req.tickers)
+        ans = generate_answer(req.question, index, embedder, k_keep=req.k, tickers=req.tickers)
+    else:
+        from earnings_signals.rag import answer_question
+
+        ans = answer_question(req.question, index, embedder, k_keep=req.k, tickers=req.tickers)
     return AskResponse(
         question=ans.question,
         refused=ans.refused,
@@ -211,6 +231,8 @@ def ask(req: AskRequest) -> AskResponse:
         answer=ans.answer,
         citations=[CitationModel(**c.__dict__) for c in ans.citations],
         caveat=ans.caveat,
+        mode=ans.mode,
+        fallback_reason=ans.fallback_reason,
         index={
             "embedder": index.embedder_name,
             "n_chunks": len(index.chunks),

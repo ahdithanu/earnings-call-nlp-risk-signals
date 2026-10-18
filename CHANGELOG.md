@@ -22,6 +22,14 @@ question-answering over the transcript corpus.
   current earnings season; the chunker auto-detects the two transcript
   formats (Seeking Alpha colon turns / Motley Fool name--title headers,
   98% coverage of live calls)
+- Generative answer mode (`POST /ask` with `generate: true`,
+  `earnings_signals/rag/generate.py`): Claude (Opus 5.5 by default,
+  `ASK_LLM_MODEL` to override) composes a cited answer strictly from the
+  retrieved excerpts — cite-or-refuse prompting plus a deterministic
+  post-generation groundedness check (valid markers, no uncited
+  sentences, lexical support per sentence); failures fall back to the
+  extractive answer with the reason reported. Needs ANTHROPIC_API_KEY;
+  the default extractive mode remains keyless and deterministic
 - Direct-from-API ingestion: scripts/fetch_av_transcripts.py pulls
   transcripts from Alpha Vantage's EARNINGS_CALL_TRANSCRIPT endpoint
   (pre-segmented speaker turns) as a gap-filler for calls the datasets

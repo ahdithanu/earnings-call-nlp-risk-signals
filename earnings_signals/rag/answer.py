@@ -4,9 +4,11 @@ The grounding guarantee is structural, not behavioral: the answer is
 assembled ONLY from verbatim corpus sentences, each tagged with the chunk
 it came from, so there is nothing a model could hallucinate — the same
 philosophy as the insight readouts (composed from data, never generated).
-A generative mode (LLM over the retrieved excerpts, cite-or-refuse) would
-layer on top of exactly this retrieval contract; the extractive mode is
-the deterministic, CI-testable floor.
+The generative mode (earnings_signals/rag/generate.py — Claude over the
+retrieved excerpts, cite-or-refuse, checked for groundedness) layers on
+top of exactly this retrieval contract; the extractive mode here is the
+deterministic, CI-testable floor and the fallback when generation cannot
+be verified.
 
 Refusal is the other half of grounding. A question whose best retrieval
 is weak on BOTH halves of the hybrid — no meaningful lexical overlap
@@ -61,12 +63,62 @@ class Answer:
     question: str
     refused: bool
     reason: str | None  # set when refused
-    answer: str | None  # bullet lines of cited verbatim sentences
+    answer: str | None  # the answer text (cited verbatim lines, or generated prose)
     citations: list[Citation] = field(default_factory=list)
     caveat: str = CAVEAT
+    mode: str = "extractive"  # "extractive" | "generative" | "extractive_fallback"
+    fallback_reason: str | None = None  # why generation fell back, when it did
 
     def to_dict(self) -> dict:
         return asdict(self)
+
+
+def citation_for(result, score: float | None = None) -> Citation:
+    c = result.chunk
+    return Citation(
+        chunk_id=c.chunk_id,
+        ticker=c.ticker,
+        company=c.company,
+        quarter=c.quarter_label,
+        speaker=c.speaker,
+        score=round(score if score is not None else result.score, 4),
+    )
+
+
+def retrieve(
+    question: str,
+    index: HybridIndex,
+    embedder: Embedder,
+    *,
+    k_retrieve: int = K_RETRIEVE,
+    k_keep: int = K_KEEP,
+    tickers: list[str] | None = None,
+) -> tuple[list, Answer | None]:
+    """The shared retrieval + refusal stage of both answer modes.
+
+    Returns (kept results, None) when the question is answerable, or
+    ([], refusal Answer) when it is out of scope / out of knowledge base.
+    """
+    results = index.search(question, embedder, k=k_retrieve, tickers=tickers)
+    if not results:
+        return [], Answer(
+            question=question,
+            refused=True,
+            reason="no documents in scope (empty index or ticker filter matched nothing)",
+            answer=None,
+        )
+    best_dense = max(r.dense_score for r in results)
+    best_bm25 = max(r.bm25_score for r in results)
+    if best_dense < REFUSE_DENSE_SIM and best_bm25 < REFUSE_BM25:
+        return [], Answer(
+            question=question,
+            refused=True,
+            reason="question does not match the knowledge base (executive Q&A "
+            "answers from S&P 500 earnings calls); refusing rather than "
+            "returning unrelated excerpts",
+            answer=None,
+        )
+    return results[:k_keep], None
 
 
 def answer_question(
@@ -78,28 +130,11 @@ def answer_question(
     k_keep: int = K_KEEP,
     tickers: list[str] | None = None,
 ) -> Answer:
-    results = index.search(question, embedder, k=k_retrieve, tickers=tickers)
-    if not results:
-        return Answer(
-            question=question,
-            refused=True,
-            reason="no documents in scope (empty index or ticker filter matched nothing)",
-            answer=None,
-        )
-
-    best_dense = max(r.dense_score for r in results)
-    best_bm25 = max(r.bm25_score for r in results)
-    if best_dense < REFUSE_DENSE_SIM and best_bm25 < REFUSE_BM25:
-        return Answer(
-            question=question,
-            refused=True,
-            reason="question does not match the knowledge base (executive Q&A "
-            "answers from S&P 500 earnings calls); refusing rather than "
-            "returning unrelated excerpts",
-            answer=None,
-        )
-
-    kept = results[:k_keep]
+    kept, refusal = retrieve(
+        question, index, embedder, k_retrieve=k_retrieve, k_keep=k_keep, tickers=tickers
+    )
+    if refusal is not None:
+        return refusal
 
     # Rank every sentence in the kept chunks by similarity to the question.
     candidates: list[tuple[int, str]] = []  # (kept-chunk idx, sentence)
@@ -126,17 +161,7 @@ def answer_question(
         c = kept[ci].chunk
         lines.append(f'- "{sentence}" — {c.ticker} {c.quarter_label} executive Q&A [{n}]')
 
-    citations = [
-        Citation(
-            chunk_id=kept[ci].chunk.chunk_id,
-            ticker=kept[ci].chunk.ticker,
-            company=kept[ci].chunk.company,
-            quarter=kept[ci].chunk.quarter_label,
-            speaker=kept[ci].chunk.speaker,
-            score=round(kept[ci].score, 4),
-        )
-        for ci in cited
-    ]
+    citations = [citation_for(kept[ci]) for ci in cited]
     return Answer(
         question=question,
         refused=False,

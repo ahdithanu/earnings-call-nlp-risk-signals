@@ -146,6 +146,37 @@ def test_ask_validation_and_missing_index(tmp_path, monkeypatch):
     _RAG_CACHE.clear()
 
 
+def test_ask_generate_requires_api_key(rag_index_env, monkeypatch):
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    r = client.post("/ask", json={"question": "What about supply chains?", "generate": True})
+    assert r.status_code == 503
+    assert "generative mode" in r.json()["detail"]
+    # extractive mode is unaffected
+    r = client.post("/ask", json={"question": "What about supply chains?"})
+    assert r.status_code == 200 and r.json()["mode"] == "extractive"
+
+
+def test_ask_generate_with_mocked_model(rag_index_env, monkeypatch):
+    import earnings_signals.rag.generate as gen
+
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key-never-used")
+    monkeypatch.setattr(
+        gen,
+        "_call_model",
+        lambda q, kept, model: (
+            "Acme expects supply chain disruptions in Vietnam with elevated freight costs [1]."
+        ),
+    )
+    r = client.post(
+        "/ask", json={"question": "What about supply chain disruptions?", "generate": True}
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["mode"] == "generative" and not body["refused"]
+    assert body["answer"].endswith("[1].")
+    assert body["citations"][0]["ticker"] == "ACME"
+
+
 def test_insight_endpoint():
     r = client.get("/insight/NVDA")
     # 200 once data/processed/latest_insights.json is committed; 503 if absent

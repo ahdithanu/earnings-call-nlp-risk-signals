@@ -13,7 +13,7 @@ WORKDIR /app
 # Install deps first for layer caching: metadata + package only.
 COPY pyproject.toml README.md ./
 COPY earnings_signals ./earnings_signals
-RUN pip install ".[api,rag]"
+RUN pip install ".[api,rag,llm]"
 
 # Bake the embedding model into the image (~30MB) so /ask needs no network
 # or model download at runtime; world-readable for the non-root user.
