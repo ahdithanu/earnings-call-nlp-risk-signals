@@ -74,6 +74,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # The retrieval index is a release artifact, not a committed file;
+      # bake it in when published (the image builds fine without it —
+      # /ask then returns 503 and every other endpoint works).
+      - name: Fetch retrieval index (optional)
+        run: python3 -m scripts.fetch_rag_index || echo "::warning::no rag-index release yet; /ask disabled in this image"
       - name: Build image
         run: docker build -t earnings-signals-api:ci .
       - name: Smoke test container

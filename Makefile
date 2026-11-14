@@ -1,10 +1,10 @@
 # Developer entry points. Everything here is what CI runs, so `make check`
 # passing locally means the PR gates will pass too.
 
-.PHONY: install test lint format typecheck check build validate analyze site serve docker
+.PHONY: install test lint format typecheck check build validate analyze site serve docker rag-index rag-fetch rag-eval eval eval-fetch eval-extraction
 
-install:            ## editable install with api+dev extras
-	pip install -e ".[api,dev]"
+install:            ## editable install with api+rag+dev extras
+	pip install -e ".[api,rag,dev]"
 
 test:               ## unit tests with coverage
 	python -m pytest tests/ --cov --cov-report=term-missing
@@ -39,6 +39,15 @@ insights:           ## rebuild insight readouts + the weekly brief
 	python -m scripts.build_insights
 	python -m scripts.weekly_brief
 
+rag-index:          ## rebuild the retrieval index behind POST /ask (both sources)
+	python -m scripts.build_rag_index
+
+rag-fetch:          ## download the weekly-published index instead of building
+	python -m scripts.fetch_rag_index
+
+rag-eval:           ## measure retrieval quality into results/rag_eval.txt
+	python -m scripts.eval_rag
+
 site:               ## regenerate the self-contained explorer
 	python -m scripts.export_web_data
 
@@ -49,3 +58,12 @@ docker:             ## build and smoke-test the API image
 	docker build -t earnings-signals-api .
 	docker run -d --rm -p 8000:8000 --name esapi earnings-signals-api
 	sleep 5 && curl -sf localhost:8000/healthz && docker stop esapi
+
+eval:               ## scoring-correctness fixtures + eval metric unit tests (offline)
+	python -m pytest tests/test_scoring_fixtures.py tests/test_eval_metrics.py -q
+
+eval-fetch:         ## download + hash-verify the 30 benchmark transcripts
+	python -m evals.fetch_benchmark
+
+eval-extraction:    ## run the extraction benchmark (dev split) into evals/results/
+	python -m evals.run_extraction_eval --split dev

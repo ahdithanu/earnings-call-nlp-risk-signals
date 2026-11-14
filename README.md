@@ -18,7 +18,9 @@ flowchart LR
     QG --> WL["watchlist\nout-of-sample z-scores"]
     RES --> WEB["static explorer\nGitHub Pages"]
     WL --> WEB
-    WL --> API["FastAPI service\n/score /signals /healthz\n(Docker, GHCR)"]
+    WL --> API["FastAPI service\n/score /ask /signals /healthz\n(Docker, GHCR)"]
+    DS --> RAG[("rag index\n55k exec-answer chunks\nBM25 + dense, RRF-fused")]
+    RAG --> API
     CRON["weekly cron\n+ failure alerts"] -.refreshes.-> WL
     CRON -.redeploys.-> WEB
 ```
@@ -71,13 +73,37 @@ docker pull ghcr.io/ahdithanu/earnings-signals-api:latest   # published on versi
 - `POST /score` — negation-aware uncertainty + LM tone densities for every scope derivable from the submitted text (full / Q&A / executive-only / CEO / CFO), with isolation flags and role provenance
 - `GET /signals` — the latest hedging watchlist
 - `GET /insight/{ticker}` — the **insight readout**: the numbers as sentences — level vs the company's own history, whether the CEO or CFO drove it, hedging-vs-bad-news character, the terms responsible, and the highest-density executive quotes as receipts. Composed deterministically from the data (`earnings_signals/insights.py`), so it is testable and cannot hallucinate; the same readouts power the explorer's per-company cards and [`results/weekly_brief.md`](results/weekly_brief.md). Rebuild with `make insights`.
+- `POST /ask` — **grounded Q&A over the transcripts** (see the next section)
 - `GET /healthz` — liveness + lexicon sanity; interactive docs at `/docs`
 
 Point the explorer's `signals-api` meta tag at a deployed instance and the site gains a live "score your own text" section (it stays fully static otherwise).
 
+## Ask the Transcripts (grounded Q&A)
+
+`POST /ask` answers natural-language questions over the earnings corpus — *"What is Apple saying about AI features on the iPhone?"* returns verbatim Tim Cook quotes across three quarters, each with a citation. The design (`earnings_signals/rag/`) is a complete retrieval-augmented pipeline with every choice measured, not assumed:
+
+- **Ingestion mirrors the pipeline's two-layer split, plus a direct API path:** chunks come from the validated panel source up to its watermark, from the live Rogersurf source beyond it (strictly newer quarters per ticker — no double-counting), and — when an `ALPHAVANTAGE_API_KEY` secret is set — from Alpha Vantage's `EARNINGS_CALL_TRANSCRIPT` API as a gap-filler for calls the datasets haven't picked up yet (days-after-the-call freshness; the fetch is budget-limited and resumable, so the free tier's ~25 req/day accumulates across weekly runs). So `/ask` quotes the **current earnings season**, not a frozen snapshot: ~54k chunks across the last 6 quarters. The dataset sources use different transcript formats (Seeking Alpha `Name :` turns vs Motley Fool `Name / -- / Title` headers), auto-detected per call — measured coverage 98% of live calls; Alpha Vantage returns pre-segmented speaker turns that need no parsing at all.
+- **Chunking is structure-aware:** the retrieval unit is one executive answer in the Q&A — the same speaker-turn attribution the feature pipeline uses — carrying ticker/sector/quarter/speaker/source metadata. Scope is a one-line config; the artifact records it in `meta.json`.
+- **Retrieval is hybrid:** BM25 (exact terms: tickers, "tariffs", product names) fused with dense embeddings (paraphrase) by reciprocal rank fusion. The embedder is model2vec's `potion-base-8M` — static embeddings with pure-numpy inference, a deliberate trade: ~30MB of weights instead of a ~2GB torch stack, with BM25 fusion recovering most of the quality gap.
+- **Retrieval is measured:** [`results/rag_eval.txt`](results/rag_eval.txt) (rebuild with `make rag-eval`) reports recall@K and MRR for bm25/dense/hybrid on a synthetic query-inversion set — hybrid hits **100% call-level recall@10** (dense alone: 84%) — so K and fusion are tuned numbers, not guesses.
+- **Answers are structurally grounded:** the default (extractive) mode composes ONLY verbatim corpus sentences, each cited `[n]` to its chunk — the same no-hallucination-by-construction philosophy as the insight readouts. Out-of-knowledge-base questions are **refused** (threshold calibrated on measured junk-vs-real score distributions: 25/25 junk refused, 50/50 real questions answered).
+- **Generative mode (`"generate": true`):** when the server has an `ANTHROPIC_API_KEY`, Claude composes a fluent 2–4 sentence answer **strictly from the retrieved excerpts** — cite-or-refuse prompting (the model must answer `NOT_IN_CONTEXT` when the excerpts don't contain it), then a deterministic **groundedness check** on the output: every `[n]` must name a real excerpt, every sentence must be cited, and each sentence's content words must actually appear in the excerpts it cites. Any violation discards the generation and serves the extractive answer with the reason in `fallback_reason` — the service degrades to verbatim quotes, never to unverified prose. Tests mock the model call, so CI stays hermetic and keyless.
+- **Permissions are enforced at retrieval:** ticker filters mask documents *before* ranking, so an entitlement-scoped caller's excluded documents never reach scoring — not post-filtered from the response.
+
+The index is a **weekly-refreshed build artifact, not a committed file**: the Monday refresh workflow rebuilds it from both sources and publishes it to the rolling [`rag-index` release](https://github.com/ahdithanu/earnings-call-nlp-risk-signals/releases/tag/rag-index); Docker/CI builds bake it into the image.
+
+```bash
+make rag-fetch   # download the latest published index (stdlib-only script)
+make rag-index   # ...or rebuild it from the sources yourself
+curl -s localhost:8000/ask -X POST -H 'content-type: application/json' \
+  -d '{"question": "What are executives saying about tariff impacts?", "k": 5}'
+```
+
 **AWS deployment** is fully codified: [`infra/aws/bootstrap.yaml`](infra/aws/bootstrap.yaml) (ECR + a GitHub-OIDC deploy role, applied once in CloudFormation — no AWS keys anywhere) and the [`Deploy to AWS`](.github/workflows/deploy-aws.yml) workflow, which builds to ECR and runs the service on App Runner with `/healthz` health checks. Walkthrough: [`docs/DEPLOY_AWS.md`](docs/DEPLOY_AWS.md).
 
 ## Methodology
+
+**Measurement accuracy is evaluated separately from statistical robustness**: [`evals/`](evals/README.md) holds a 30-transcript extraction benchmark with independently annotated Q&A boundaries (provenance-tracked, dev/holdout split) and a hand-calculated scoring-correctness gate that runs in CI. Robustness checks tell you a signal survives noise; the eval suite measures whether the extraction and the counting are right in the first place.
 
 1. **Data:** [glopardo/sp500-earnings-transcripts](https://huggingface.co/datasets/glopardo/sp500-earnings-transcripts) — 20,681 S&P 500 earnings-call transcripts with quarter keys, GICS sector, and trailing/forward 12-month EPS. The panel is the full S&P 500 — all 11 GICS sectors, 494 tickers, 20,350 deduplicated company-quarters (GOOG and NWS dropped as duplicate share classes carrying the same calls as GOOGL/NWSA). The universe is defined in one place (`earnings_signals/universe.py`); the site's headline counts are derived from the data, so changing the universe is a single edit plus a rerun — no hardcoded numbers to chase.
 2. **Q&A isolation:** transcripts are a single speaker-prefixed string, so the Q&A boundary is found by position-aware markers (explicit "Question-and-Answer Session" header, falling back to the operator's first-question handoff; intro announcements are ignored). 98% of transcripts split cleanly; the rest are flagged rather than silently mis-scored. Within the Q&A, speaker attribution (roster + prepared-remarks speakers) isolates **executive-only answers** (98%), and roster titles or IR-intro prose assign **CEO/CFO roles** (95.6%; parsed names validated at 87.7% surname continuity across the dataset's 2018/2019 format change, most mismatches being genuine executive transitions — [`results/role_name_continuity.txt`](results/role_name_continuity.txt)).
@@ -113,6 +139,8 @@ Point the explorer's `signals-api` meta tag at a deployed instance and the site 
 │   ├── fetch_prices.py                     # post-call prices (FMP or Alpha Vantage)
 │   ├── analyze_price_drift.py              # does hedging predict returns, not just EPS?
 │   ├── latest_signals.py                   # forward-looking monitoring report
+│   ├── build_rag_index.py                  # chunk + embed exec answers → retrieval index
+│   ├── eval_rag.py                         # recall@K / MRR / refusal eval → results/rag_eval.txt
 │   └── export_web_data.py                  # renders self-contained web/index.html from the parquet
 ├── web/                                    # self-contained explorer: index.template.html (source) → index.html (generated, data inlined)
 ├── earnings_signals/
@@ -122,9 +150,11 @@ Point the explorer's `signals-api` meta tag at a deployed instance and the site 
 │   ├── qa_isolation.py                     # executive-only answer attribution within the Q&A
 │   ├── exec_roles.py                       # CEO/CFO/IR role attribution (roster + intro prose)
 │   ├── features.py                         # forward EPS shift with quarter-gap guard
+│   ├── insights.py                         # deterministic readouts: numbers → sentences
+│   ├── rag/                                # grounded Q&A: chunking, hybrid index, answers
 │   ├── price_drift.py                      # post-call return math (unit-tested)
 │   └── universe.py                         # the universe rule — single edit point to change scope
-├── tests/                                  # 43 unit tests
+├── tests/                                  # 71 unit tests
 ├── lm_uncertainty_terms.txt                # full 297-term LM uncertainty category
 ├── lm_negative_terms.txt                   # full 2,355-term LM negative category (tone control)
 ├── lm_positive_terms.txt                   # full 354-term LM positive category (tone control)
@@ -136,7 +166,7 @@ Point the explorer's `signals-api` meta tag at a deployed instance and the site 
 
 ```bash
 pip install -r requirements.txt
-python -m pytest tests/            # 43 tests
+python -m pytest tests/            # 71 tests
 python -m scripts.build_features   # rebuilds the parquet (downloads dataset on first run)
 python -m scripts.analyze_uncertainty_growth
 python -m scripts.latest_signals       # score each ticker's most recent call
@@ -147,8 +177,8 @@ python -m scripts.export_web_data      # render web/index.html (panel + recent, 
 Score any text directly:
 
 ```python
-from src.lexicon import load_uncertainty_terms
-from src.uncertainty import count_uncertainty
+from earnings_signals.lexicon import load_uncertainty_terms
+from earnings_signals.uncertainty import count_uncertainty
 
 lexicon = load_uncertainty_terms()
 result = count_uncertainty(
@@ -162,7 +192,7 @@ print(result.uncertainty_count, result.negation_excluded, result.density)
 ## Data Sources
 
 - **Transcripts + EPS (validated panel, 2013–2025Q1):** [glopardo/sp500-earnings-transcripts](https://huggingface.co/datasets/glopardo/sp500-earnings-transcripts) (Hugging Face)
-- **Recent transcripts (explorer signal, through 2026):** [Rogersurf/earnings-call-transcripts](https://huggingface.co/datasets/Rogersurf/earnings-call-transcripts) (Hugging Face)
+- **Recent transcripts (explorer signal + `/ask` retrieval index, through 2026):** [Rogersurf/earnings-call-transcripts](https://huggingface.co/datasets/Rogersurf/earnings-call-transcripts) (Hugging Face; Motley Fool scrapes)
 - **Uncertainty Dictionary:** [Loughran-McDonald Master Dictionary](https://sraf.nd.edu/loughranmcdonald-master-dictionary/)
 
 ## Roadmap
@@ -173,6 +203,8 @@ print(result.uncertainty_count, result.negation_excluded, result.density)
 - [x] CEO/CFO role split — roster + intro-prose attribution, validated across the 2018/2019 format change; CEO hedging is the carrier
 - [x] Full S&P 500 primary panel — all 11 GICS sectors, sector heterogeneity as an analysis dimension
 - [x] Price-based outcomes scaffolded — post-call drift fetch (FMP **or** Alpha Vantage) + regression + CI workflow (activate with an `FMP_API_KEY` or `ALPHAVANTAGE_API_KEY` secret)
+- [x] Grounded Q&A over the corpus — hybrid retrieval (BM25 + dense, RRF), verbatim cited answers, measured recall@K, calibrated refusal
+- [ ] Intent router in front of `/ask` — classify in-scope vs out-of-scope questions before retrieval (the refusal threshold catches gibberish; lexically-overlapping off-topic questions need a router)
 
 ## License
 

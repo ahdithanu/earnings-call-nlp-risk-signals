@@ -63,3 +63,33 @@ def test_extract_returns_suffix():
     qa = extract_qa(text)
     assert qa is not None
     assert qa == text[text.index("Question and Answer") :]
+
+
+# Handoff phrasings recovered by the evals/ benchmark's dev split (see
+# evals/results/): operators saying "first call", "we'll go [first] to
+# <Name> with <Firm>", and an IR host's "now take questions from".
+def test_handoff_variants_from_benchmark():
+    variants = [
+        "And our first call comes from Matt Summerville with D.A. Davidson. ",
+        "The first call is to Amit Daryanani with Evercore. ",
+        "We'll go to the line of Ric Prentiss with Raymond James. ",
+        "We'll go first to A.J. Rice with UBS. ",
+        "And we'll go to Eric Coldwell with Baird. ",
+        "We'll now take questions from the analyst community. ",
+    ]
+    for v in variants:
+        text = REMARKS + v + REMARKS
+        start = find_qa_start(text)
+        assert start is not None, v
+        assert len(REMARKS) <= start < len(REMARKS) + len(v), v  # boundary inside the handoff
+
+
+def test_go_to_requires_capitalized_name():
+    # "we'll go to" followed by a lowercase noun phrase is prepared-remarks
+    # language, not an analyst handoff — it must not create a boundary.
+    for s in [
+        "We'll go to market with the new product this year. ",
+        "We'll go to slide five of the presentation deck now. ",
+        "We'll go first to review the segment financials today. ",
+    ]:
+        assert find_qa_start(REMARKS + s + REMARKS) is None, s

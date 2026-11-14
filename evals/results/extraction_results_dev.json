@@ -1,0 +1,590 @@
+{
+ "generated": "2026-11-14T05:12:09+00:00",
+ "split": "dev",
+ "annotation_provenance": {
+  "origin": "model-annotated: labeled by Claude in this repository's development session (2026-11-14) by READING each source transcript around candidate transitions found with a cue set broader than the extractor's (evals/show_candidates.py). NOT derived from extractor output, and NOT human-reviewed.",
+  "review_status_meaning": {
+   "unreviewed": "provisional model annotation awaiting human review",
+   "ambiguous": "the annotator judged the case genuinely debatable; see notes",
+   "human_reviewed": "reserved \u2014 no annotation currently has this status"
+  },
+  "convention": "see evals/ANNOTATION_GUIDE.md"
+ },
+ "annotations_sha256": "c4d9c55b9e5217dd5dfabbc908faec0bf92ca8b850abeb1b2504bb836831c4e1",
+ "tolerance_sentences": 2,
+ "n_invalid": 0,
+ "invalid": [],
+ "aggregate": {
+  "n_transcripts": 20,
+  "outcomes": {
+   "found_vs_gold": 20
+  },
+  "boundary": {
+   "denominator": 20,
+   "exact": 8,
+   "exact_rate": 0.4,
+   "within_2_sentences": 20,
+   "tolerant_rate": 1.0,
+   "sentence_deltas": [
+    0,
+    1,
+    1,
+    0,
+    0,
+    1,
+    1,
+    0,
+    1,
+    0,
+    0,
+    0,
+    1,
+    1,
+    -2,
+    -1,
+    1,
+    0,
+    1,
+    1
+   ]
+  },
+  "content": {
+   "mean_precision": 0.9978291814801139,
+   "mean_recall": 0.9989063457386507,
+   "mean_contamination": 5.129410880209602e-05,
+   "max_contamination": 0.0007372818874416319
+  }
+ },
+ "per_bucket": {
+  "abstain": {
+   "n_transcripts": 3,
+   "outcomes": {
+    "found_vs_gold": 3
+   },
+   "boundary": {
+    "denominator": 3,
+    "exact": 1,
+    "exact_rate": 0.3333333333333333,
+    "within_2_sentences": 3,
+    "tolerant_rate": 1.0,
+    "sentence_deltas": [
+     0,
+     1,
+     1
+    ]
+   },
+   "content": {
+    "mean_precision": 1.0,
+    "mean_recall": 0.9986648783800915,
+    "mean_contamination": 0.0,
+    "max_contamination": 0.0
+   }
+  },
+  "extreme": {
+   "n_transcripts": 2,
+   "outcomes": {
+    "found_vs_gold": 2
+   },
+   "boundary": {
+    "denominator": 2,
+    "exact": 2,
+    "exact_rate": 1.0,
+    "within_2_sentences": 2,
+    "tolerant_rate": 1.0,
+    "sentence_deltas": [
+     0,
+     0
+    ]
+   },
+   "content": {
+    "mean_precision": 1.0,
+    "mean_recall": 0.9991280925672859,
+    "mean_contamination": 0.0,
+    "max_contamination": 0.0
+   }
+  },
+  "firstq": {
+   "n_transcripts": 3,
+   "outcomes": {
+    "found_vs_gold": 3
+   },
+   "boundary": {
+    "denominator": 3,
+    "exact": 1,
+    "exact_rate": 0.3333333333333333,
+    "within_2_sentences": 3,
+    "tolerant_rate": 1.0,
+    "sentence_deltas": [
+     1,
+     1,
+     0
+    ]
+   },
+   "content": {
+    "mean_precision": 1.0,
+    "mean_recall": 0.9989375200305521,
+    "mean_contamination": 0.0,
+    "max_contamination": 0.0
+   }
+  },
+  "handoff": {
+   "n_transcripts": 3,
+   "outcomes": {
+    "found_vs_gold": 3
+   },
+   "boundary": {
+    "denominator": 3,
+    "exact": 2,
+    "exact_rate": 0.6666666666666666,
+    "within_2_sentences": 3,
+    "tolerant_rate": 1.0,
+    "sentence_deltas": [
+     1,
+     0,
+     0
+    ]
+   },
+   "content": {
+    "mean_precision": 1.0,
+    "mean_recall": 0.9989486280818478,
+    "mean_contamination": 0.0,
+    "max_contamination": 0.0
+   }
+  },
+  "header_multi": {
+   "n_transcripts": 4,
+   "outcomes": {
+    "found_vs_gold": 4
+   },
+   "boundary": {
+    "denominator": 4,
+    "exact": 1,
+    "exact_rate": 0.25,
+    "within_2_sentences": 4,
+    "tolerant_rate": 1.0,
+    "sentence_deltas": [
+     0,
+     1,
+     1,
+     -2
+    ]
+   },
+   "content": {
+    "mean_precision": 0.9998156795281397,
+    "mean_recall": 0.9988305890353526,
+    "mean_contamination": 0.00018432047186040798,
+    "max_contamination": 0.0007372818874416319
+   }
+  },
+  "header_single": {
+   "n_transcripts": 2,
+   "outcomes": {
+    "found_vs_gold": 2
+   },
+   "boundary": {
+    "denominator": 2,
+    "exact": 0,
+    "exact_rate": 0.0,
+    "within_2_sentences": 2,
+    "tolerant_rate": 1.0,
+    "sentence_deltas": [
+     -1,
+     1
+    ]
+   },
+   "content": {
+    "mean_precision": 0.9998556998556998,
+    "mean_recall": 0.9992827084927314,
+    "mean_contamination": 0.0001443001443001443,
+    "max_contamination": 0.0002886002886002886
+   }
+  },
+  "rs_colon": {
+   "n_transcripts": 1,
+   "outcomes": {
+    "found_vs_gold": 1
+   },
+   "boundary": {
+    "denominator": 1,
+    "exact": 1,
+    "exact_rate": 1.0,
+    "within_2_sentences": 1,
+    "tolerant_rate": 1.0,
+    "sentence_deltas": [
+     0
+    ]
+   },
+   "content": {
+    "mean_precision": 1.0,
+    "mean_recall": 0.9991657397107898,
+    "mean_contamination": 0.0,
+    "max_contamination": 0.0
+   }
+  },
+  "rs_mf": {
+   "n_transcripts": 2,
+   "outcomes": {
+    "found_vs_gold": 2
+   },
+   "boundary": {
+    "denominator": 2,
+    "exact": 0,
+    "exact_rate": 0.0,
+    "within_2_sentences": 2,
+    "tolerant_rate": 1.0,
+    "sentence_deltas": [
+     1,
+     1
+    ]
+   },
+   "content": {
+    "mean_precision": 0.9788047558891615,
+    "mean_recall": 0.9985820686616511,
+    "mean_contamination": 0.0,
+    "max_contamination": 0.0
+   }
+  }
+ },
+ "per_transcript": [
+  {
+   "id": "glopardo-AMT-2024Q4",
+   "split": "dev",
+   "bucket": "abstain",
+   "outcome": "found_vs_gold",
+   "gold_start": 26570,
+   "predicted": 26605,
+   "char_delta": 35,
+   "sentence_delta": 0,
+   "exact": true,
+   "within_tolerance": true,
+   "precision": 1.0,
+   "recall": 0.9994063520332442,
+   "contamination": 0.0,
+   "ambiguous": false,
+   "note": ""
+  },
+  {
+   "id": "glopardo-UAL-2016Q3",
+   "split": "dev",
+   "bucket": "abstain",
+   "outcome": "found_vs_gold",
+   "gold_start": 15756,
+   "predicted": 15839,
+   "char_delta": 83,
+   "sentence_delta": 1,
+   "exact": false,
+   "within_tolerance": true,
+   "precision": 1.0,
+   "recall": 0.9982842436374035,
+   "contamination": 0.0,
+   "ambiguous": false,
+   "note": ""
+  },
+  {
+   "id": "glopardo-UNH-2025Q1",
+   "split": "dev",
+   "bucket": "abstain",
+   "outcome": "found_vs_gold",
+   "gold_start": 21657,
+   "predicted": 21729,
+   "char_delta": 72,
+   "sentence_delta": 1,
+   "exact": false,
+   "within_tolerance": true,
+   "precision": 1.0,
+   "recall": 0.9983040394696269,
+   "contamination": 0.0,
+   "ambiguous": false,
+   "note": ""
+  },
+  {
+   "id": "glopardo-AMZN-2020Q4",
+   "split": "dev",
+   "bucket": "extreme",
+   "outcome": "found_vs_gold",
+   "gold_start": 9550,
+   "predicted": 9589,
+   "char_delta": 39,
+   "sentence_delta": 0,
+   "exact": true,
+   "within_tolerance": true,
+   "precision": 1.0,
+   "recall": 0.9987389659520807,
+   "contamination": 0.0,
+   "ambiguous": false,
+   "note": ""
+  },
+  {
+   "id": "glopardo-TRMB-2016Q4",
+   "split": "dev",
+   "bucket": "extreme",
+   "outcome": "found_vs_gold",
+   "gold_start": 32931,
+   "predicted": 32947,
+   "char_delta": 16,
+   "sentence_delta": 0,
+   "exact": true,
+   "within_tolerance": true,
+   "precision": 1.0,
+   "recall": 0.9995172191824911,
+   "contamination": 0.0,
+   "ambiguous": false,
+   "note": ""
+  },
+  {
+   "id": "glopardo-BA-2024Q1",
+   "split": "dev",
+   "bucket": "firstq",
+   "outcome": "found_vs_gold",
+   "gold_start": 18600,
+   "predicted": 18654,
+   "char_delta": 54,
+   "sentence_delta": 1,
+   "exact": false,
+   "within_tolerance": true,
+   "precision": 1.0,
+   "recall": 0.9982324348210341,
+   "contamination": 0.0,
+   "ambiguous": false,
+   "note": ""
+  },
+  {
+   "id": "glopardo-COP-2016Q2",
+   "split": "dev",
+   "bucket": "firstq",
+   "outcome": "found_vs_gold",
+   "gold_start": 20033,
+   "predicted": 20063,
+   "char_delta": 30,
+   "sentence_delta": 1,
+   "exact": false,
+   "within_tolerance": true,
+   "precision": 1.0,
+   "recall": 0.999348321928967,
+   "contamination": 0.0,
+   "ambiguous": false,
+   "note": ""
+  },
+  {
+   "id": "glopardo-SBUX-2015Q3",
+   "split": "dev",
+   "bucket": "firstq",
+   "outcome": "found_vs_gold",
+   "gold_start": 44459,
+   "predicted": 44494,
+   "char_delta": 35,
+   "sentence_delta": 0,
+   "exact": true,
+   "within_tolerance": true,
+   "precision": 1.0,
+   "recall": 0.9992318033416555,
+   "contamination": 0.0,
+   "ambiguous": false,
+   "note": ""
+  },
+  {
+   "id": "glopardo-AOS-2023Q3",
+   "split": "dev",
+   "bucket": "handoff",
+   "outcome": "found_vs_gold",
+   "gold_start": 13999,
+   "predicted": 14043,
+   "char_delta": 44,
+   "sentence_delta": 1,
+   "exact": false,
+   "within_tolerance": true,
+   "precision": 1.0,
+   "recall": 0.9986705074230002,
+   "contamination": 0.0,
+   "ambiguous": false,
+   "note": ""
+  },
+  {
+   "id": "glopardo-APH-2024Q1",
+   "split": "dev",
+   "bucket": "handoff",
+   "outcome": "found_vs_gold",
+   "gold_start": 26361,
+   "predicted": 26400,
+   "char_delta": 39,
+   "sentence_delta": 0,
+   "exact": true,
+   "within_tolerance": true,
+   "precision": 1.0,
+   "recall": 0.999104744852283,
+   "contamination": 0.0,
+   "ambiguous": false,
+   "note": ""
+  },
+  {
+   "id": "glopardo-CRL-2018Q1",
+   "split": "dev",
+   "bucket": "handoff",
+   "outcome": "found_vs_gold",
+   "gold_start": 37331,
+   "predicted": 37370,
+   "char_delta": 39,
+   "sentence_delta": 0,
+   "exact": true,
+   "within_tolerance": true,
+   "precision": 1.0,
+   "recall": 0.9990706319702602,
+   "contamination": 0.0,
+   "ambiguous": false,
+   "note": ""
+  },
+  {
+   "id": "glopardo-ELV-2018Q2",
+   "split": "dev",
+   "bucket": "header_multi",
+   "outcome": "found_vs_gold",
+   "gold_start": 27524,
+   "predicted": 27582,
+   "char_delta": 58,
+   "sentence_delta": 0,
+   "exact": true,
+   "within_tolerance": true,
+   "precision": 1.0,
+   "recall": 0.9982072427393331,
+   "contamination": 0.0,
+   "ambiguous": false,
+   "note": ""
+  },
+  {
+   "id": "glopardo-HLT-2022Q4",
+   "split": "dev",
+   "bucket": "header_multi",
+   "outcome": "found_vs_gold",
+   "gold_start": 14511,
+   "predicted": 14555,
+   "char_delta": 44,
+   "sentence_delta": 1,
+   "exact": false,
+   "within_tolerance": true,
+   "precision": 1.0,
+   "recall": 0.9988036687491693,
+   "contamination": 0.0,
+   "ambiguous": false,
+   "note": ""
+  },
+  {
+   "id": "glopardo-HPE-2024Q4",
+   "split": "dev",
+   "bucket": "header_multi",
+   "outcome": "found_vs_gold",
+   "gold_start": 24560,
+   "predicted": 24604,
+   "char_delta": 44,
+   "sentence_delta": 1,
+   "exact": false,
+   "within_tolerance": true,
+   "precision": 1.0,
+   "recall": 0.9983114446529081,
+   "contamination": 0.0,
+   "ambiguous": false,
+   "note": ""
+  },
+  {
+   "id": "glopardo-POOL-2014Q2",
+   "split": "dev",
+   "bucket": "header_multi",
+   "outcome": "found_vs_gold",
+   "gold_start": 6007,
+   "predicted": 5972,
+   "char_delta": -35,
+   "sentence_delta": -2,
+   "exact": false,
+   "within_tolerance": true,
+   "precision": 0.9992627181125584,
+   "recall": 1.0,
+   "contamination": 0.0007372818874416319,
+   "ambiguous": false,
+   "note": ""
+  },
+  {
+   "id": "glopardo-MA-2018Q3",
+   "split": "dev",
+   "bucket": "header_single",
+   "outcome": "found_vs_gold",
+   "gold_start": 18936,
+   "predicted": 18907,
+   "char_delta": -29,
+   "sentence_delta": -1,
+   "exact": false,
+   "within_tolerance": true,
+   "precision": 0.9997113997113997,
+   "recall": 1.0,
+   "contamination": 0.0002886002886002886,
+   "ambiguous": false,
+   "note": ""
+  },
+  {
+   "id": "glopardo-SHW-2016Q1",
+   "split": "dev",
+   "bucket": "header_single",
+   "outcome": "found_vs_gold",
+   "gold_start": 17366,
+   "predicted": 17448,
+   "char_delta": 82,
+   "sentence_delta": 1,
+   "exact": false,
+   "within_tolerance": true,
+   "precision": 1.0,
+   "recall": 0.9985654169854629,
+   "contamination": 0.0,
+   "ambiguous": false,
+   "note": ""
+  },
+  {
+   "id": "rogersurf-ZBRA-2026Q1",
+   "split": "dev",
+   "bucket": "rs_colon",
+   "outcome": "found_vs_gold",
+   "gold_start": 15109,
+   "predicted": 15141,
+   "char_delta": 32,
+   "sentence_delta": 0,
+   "exact": true,
+   "within_tolerance": true,
+   "precision": 1.0,
+   "recall": 0.9991657397107898,
+   "contamination": 0.0,
+   "ambiguous": false,
+   "note": ""
+  },
+  {
+   "id": "rogersurf-ADBE-2025Q1",
+   "split": "dev",
+   "bucket": "rs_mf",
+   "outcome": "found_vs_gold",
+   "gold_start": 31918,
+   "predicted": 31988,
+   "char_delta": 70,
+   "sentence_delta": 1,
+   "exact": false,
+   "within_tolerance": true,
+   "precision": 0.9825012866700978,
+   "recall": 0.9984309623430963,
+   "contamination": 0.0,
+   "ambiguous": false,
+   "note": ""
+  },
+  {
+   "id": "rogersurf-LLY-2024Q4",
+   "split": "dev",
+   "bucket": "rs_mf",
+   "outcome": "found_vs_gold",
+   "gold_start": 28143,
+   "predicted": 28213,
+   "char_delta": 70,
+   "sentence_delta": 1,
+   "exact": false,
+   "within_tolerance": true,
+   "precision": 0.9751082251082251,
+   "recall": 0.9987331749802059,
+   "contamination": 0.0,
+   "ambiguous": false,
+   "note": ""
+  }
+ ]
+}
