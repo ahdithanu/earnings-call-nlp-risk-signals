@@ -19,7 +19,7 @@ Vectors from both are L2-normalized so dot product == cosine similarity.
 """
 
 import hashlib
-from typing import Protocol
+from typing import Any, Protocol
 
 import numpy as np
 
@@ -73,7 +73,9 @@ class Model2VecEmbedder:
     def __init__(self, model_name: str = DEFAULT_MODEL):
         self.model_name = model_name
         self.name = model_name.split("/")[-1]
-        self._model = None
+        # Any, not "StaticModel | None": model2vec is an optional extra and
+        # only imported inside _load, so the name can't appear in annotations
+        self._model: Any = None
         self.dim = 256  # potion-base-8M; corrected on first encode
 
     def _load(self):
