@@ -33,8 +33,20 @@ _FIRST_QUESTION_RE = re.compile(
 # — these phrases occur only during the live Q&A, never in the intro — so they
 # recover transcripts that use neither an explicit header nor a "first
 # question" cue (~62% of the remaining failures) without risking a bad split.
+#
+# The last three alternatives were added after the evals/ benchmark's dev
+# split exposed misses (see evals/results/baseline/): operators saying
+# "first CALL comes from" / "the first call is to" (AOS, APH), "we'll go
+# [first] to <Name> with/of <Firm>" (AMT, UNH, CRL — the capitalized-name +
+# of/with/from requirement keeps "we'll go to market" from matching), and
+# an IR host's "now take questions from" (UAL). Tier order is unchanged, so
+# transcripts with an explicit header or first-question cue are unaffected.
 _HANDOFF_RE = re.compile(
-    r"(?:next|first) question[^.?!]{0,40}from |your line is open|line is open",
+    r"(?:next|first) (?:question|call)[^.?!]{0,40}(?:from|is to) "
+    r"|your line is open|line is open"
+    r"|we(?:'|’)ll go (?:first )?to (?:the line of )?"
+    r"(?-i:[A-Z][\w.'’-]*(?:\s+[A-Z][\w.'’-]*){0,3})\s+(?:of|with|from)\b"
+    r"|now take questions from ",
     re.IGNORECASE,
 )
 

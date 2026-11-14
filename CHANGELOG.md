@@ -5,6 +5,28 @@
 The words join the numbers: plain-English insight readouts, and grounded
 question-answering over the transcript corpus.
 
+### Evaluation suite (`evals/`)
+- Extraction benchmark: 30 real transcripts (30 tickers, 10 sectors,
+  2014–2026, both source formats) with model-annotated (unreviewed,
+  provenance-tracked) gold Q&A boundaries, a frozen 20/10 dev/holdout
+  split, hash-verified reproducible retrieval from pinned dataset
+  revisions, and boundary/precision/recall/contamination/abstention
+  metrics (`make eval-fetch`, `make eval-extraction`)
+- Scoring-correctness gate: 15 hand-calculated fixtures run in CI
+  offline, documenting six quirks of the existing scoring definition
+  (see evals/README.md); no scoring behavior changed
+- Targeted extractor correction justified by dev-split failures: the
+  analyst-handoff fallback now also recognizes "first call comes
+  from/is to", "we'll go [first] to <Name> with <Firm>" (capitalized
+  name required), and "now take questions from". Dev split went
+  17/20 found, 14/17 within ±2 sentences → 20/20 and 20/20; holdout
+  untouched (byte-identical results). Corpus-wide: abstentions
+  1.94% → 1.37%; 99 boundaries move earlier (median 10% of transcript),
+  recovering first Q&A exchanges previously cut off. NOTE: the
+  committed feature parquet and published RAG index were built with the
+  previous extractor; their next rebuild inherits these (improved)
+  boundaries on ~1% of calls.
+
 ### Ask the transcripts (`POST /ask`, `earnings_signals/rag/`)
 - Speaker-turn chunking of executive Q&A answers (55,289 chunks, most
   recent 4 quarters) with ticker/sector/quarter/speaker metadata
