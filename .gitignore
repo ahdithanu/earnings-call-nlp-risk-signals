@@ -213,3 +213,7 @@ data/processed/rag_index/
 # Alpha Vantage transcript attempt cache: persisted via the rolling
 # `rag-index` release between weekly runs, never committed.
 data/av_transcripts/
+
+# Benchmark transcript cache: fetched from the pinned source datasets by
+# evals/fetch_benchmark.py; not ours to redistribute, never committed.
+evals/cache/

@@ -1,0 +1,254 @@
+{
+ "provenance": {
+  "origin": "model-annotated: labeled by Claude in this repository's development session (2026-11-14) by READING each source transcript around candidate transitions found with a cue set broader than the extractor's (evals/show_candidates.py). NOT derived from extractor output, and NOT human-reviewed.",
+  "review_status_meaning": {
+   "unreviewed": "provisional model annotation awaiting human review",
+   "ambiguous": "the annotator judged the case genuinely debatable; see notes",
+   "human_reviewed": "reserved — no annotation currently has this status"
+  },
+  "convention": "see evals/ANNOTATION_GUIDE.md"
+ },
+ "frozen": "2026-11-14 (commit this file before any change to extraction behavior; re-annotation afterwards requires a new freeze note)",
+ "annotations": [
+  {
+   "id": "glopardo-AMT-2024Q4",
+   "qa_start_char": 26570,
+   "qa_end_char": null,
+   "anchor_text": "Operator : [Operator Instructions] We'll go to the line of Ric Prentiss with Raymond James. Ric Pren",
+   "review_status": "unreviewed",
+   "notes": "Q&A opened by operator utterance \"We'll go to the line of Ric Prentiss with Raymond James\" after the CEO's handoff; no phrasing from the extractor's cue set appears."
+  },
+  {
+   "id": "glopardo-ERIE-2017Q4",
+   "qa_start_char": null,
+   "qa_end_char": null,
+   "anchor_text": null,
+   "review_status": "ambiguous",
+   "notes": "Executive invites questions at ~96% of the call; the operator turn is empty and IR immediately closes — zero questions were asked, so no Q&A content exists. Arguably an empty Q&A section opens at the invitation; labeled as no-Q&A because there is no Q&A content to extract."
+  },
+  {
+   "id": "glopardo-UAL-2016Q3",
+   "qa_start_char": 15756,
+   "qa_end_char": null,
+   "anchor_text": "Jonathan Ireland - Managing Director- Investor Relations : Thank you, Oscar. We'll now take question",
+   "review_status": "unreviewed",
+   "notes": "IR utterance \"We'll now take questions from the analyst community\" initiates Q&A (IR moderates; no operator first-question phrasing)."
+  },
+  {
+   "id": "glopardo-UNH-2025Q1",
+   "qa_start_char": 21657,
+   "qa_end_char": null,
+   "anchor_text": "Operator : The floor is now open for questions. [Operator Instructions] We'll go first to A.J. Rice ",
+   "review_status": "unreviewed",
+   "notes": "Operator: \"The floor is now open for questions... We'll go first to A.J. Rice\" — phrasing outside the extractor's cue set."
+  },
+  {
+   "id": "glopardo-AMZN-2020Q4",
+   "qa_start_char": 9550,
+   "qa_end_char": null,
+   "anchor_text": "Operator : [Operator Instructions] our first question comes from Brian Nowak with Morgan Stanley. Pl",
+   "review_status": "unreviewed",
+   "notes": "Operator first-question handoff after exec's \"let's move onto Q&A\"."
+  },
+  {
+   "id": "glopardo-FE-2019Q3",
+   "qa_start_char": 15447,
+   "qa_end_char": null,
+   "anchor_text": "Operator : [Operator Instructions] Our first question comes from the line of Julien Dumolin-Smith wi",
+   "review_status": "unreviewed",
+   "notes": "Operator first-question handoff after exec's \"Now let's take your questions\"."
+  },
+  {
+   "id": "glopardo-TRMB-2016Q4",
+   "qa_start_char": 32931,
+   "qa_end_char": null,
+   "anchor_text": "Operator : Your first question comes from the line of Jerry Revich from Goldman Sachs. Your line is ",
+   "review_status": "unreviewed",
+   "notes": "Operator: \"Your first question comes from the line of Jerry Revich\" after exec handoff."
+  },
+  {
+   "id": "glopardo-AXON-2014Q3",
+   "qa_start_char": 25121,
+   "qa_end_char": null,
+   "anchor_text": "Operator : (Operator Instructions) And our first question comes from the line of Steve Dyer with Cra",
+   "review_status": "unreviewed",
+   "notes": "Operator: \"(Operator Instructions) And our first question comes from the line of Steve Dyer\"."
+  },
+  {
+   "id": "glopardo-BA-2024Q1",
+   "qa_start_char": 18600,
+   "qa_end_char": null,
+   "anchor_text": "Operator : Thank you. [Operator Instructions] And our first question is from the line of Peter Armen",
+   "review_status": "unreviewed",
+   "notes": "Operator first-question handoff after CEO's \"Happy to take your questions\"."
+  },
+  {
+   "id": "glopardo-COP-2016Q2",
+   "qa_start_char": 20033,
+   "qa_end_char": null,
+   "anchor_text": "Operator : Thank you. And our first question is from Evan Calio of Morgan Stanley. Please go ahead. ",
+   "review_status": "unreviewed",
+   "notes": "Operator: \"And our first question is from Evan Calio of Morgan Stanley\"."
+  },
+  {
+   "id": "glopardo-SBUX-2015Q3",
+   "qa_start_char": 44459,
+   "qa_end_char": null,
+   "anchor_text": "Operator : [Operator Instructions] First question is from Keith Siegner with UBS. Keith Siegner : Th",
+   "review_status": "unreviewed",
+   "notes": "Operator: \"[Operator Instructions] First question is from Keith Siegner\" after IR handoff."
+  },
+  {
+   "id": "glopardo-AOS-2023Q3",
+   "qa_start_char": 13999,
+   "qa_end_char": null,
+   "anchor_text": "Operator : [Operator Instructions]. And our first call comes from Matt Summerville with D.A. Davidso",
+   "review_status": "unreviewed",
+   "notes": "Operator opens Q&A with \"And our first CALL comes from Matt Summerville\" — 'first call', not 'first question'; later turns use 'next question comes from'."
+  },
+  {
+   "id": "glopardo-APH-2024Q1",
+   "qa_start_char": 26361,
+   "qa_end_char": null,
+   "anchor_text": "Operator : [Operator Instructions] The first call is to Amit Daryanani with Evercore. You may go ahe",
+   "review_status": "unreviewed",
+   "notes": "Operator opens Q&A with \"The first CALL is to Amit Daryanani\" — again 'call', not 'question'."
+  },
+  {
+   "id": "glopardo-BEN-2019Q3",
+   "qa_start_char": 2158,
+   "qa_end_char": null,
+   "anchor_text": "Operator : Thank you. [Operator Instructions] Our first question today is coming from Glenn Schorr f",
+   "review_status": "unreviewed",
+   "notes": "Prepared commentary is published separately, so the live call is nearly all Q&A: the operator's first-question handoff sits at ~4.5% of the transcript, BELOW the extractor's 15% position floor."
+  },
+  {
+   "id": "glopardo-CRL-2018Q1",
+   "qa_start_char": 37331,
+   "qa_end_char": null,
+   "anchor_text": "Operator : [Operator Instructions] And we’ll go to Eric Coldwell with Baird. Eric Coldwell : Questio",
+   "review_status": "unreviewed",
+   "notes": "Operator: \"[Operator Instructions] And we'll go to Eric Coldwell with Baird\" after IR's \"The operator will take your questions now\"."
+  },
+  {
+   "id": "glopardo-ELV-2018Q2",
+   "qa_start_char": 27524,
+   "qa_end_char": null,
+   "anchor_text": "Operator : And, ladies and gentlemen, we'll now begin the question-and-answer session. And our first",
+   "review_status": "unreviewed",
+   "notes": "Operator: \"we'll now begin the question-and-answer session. And our first question today comes from...\""
+  },
+  {
+   "id": "glopardo-HLT-2022Q4",
+   "qa_start_char": 14511,
+   "qa_end_char": null,
+   "anchor_text": "Operator : Thank you. We will now begin the question-and-answer session. [Operator Instructions] Our",
+   "review_status": "unreviewed",
+   "notes": "Operator opens the question-and-answer session; IR's preceding 'open the line' sentence closes prepared remarks per the guide convention."
+  },
+  {
+   "id": "glopardo-HPE-2024Q4",
+   "qa_start_char": 24560,
+   "qa_end_char": null,
+   "anchor_text": "Operator : Thank you. We will now begin the question-and-answer session. [Operator Instructions] And",
+   "review_status": "unreviewed",
+   "notes": "Operator: \"We will now begin the question-and-answer session\"."
+  },
+  {
+   "id": "glopardo-JBL-2023Q3",
+   "qa_start_char": 31121,
+   "qa_end_char": null,
+   "anchor_text": "Operator : Thank you. We'll now be conducting a question-and-answer session. [Operator Instructions]",
+   "review_status": "unreviewed",
+   "notes": "Operator: \"We'll now be conducting a question-and-answer session\"."
+  },
+  {
+   "id": "glopardo-POOL-2014Q2",
+   "qa_start_char": 6007,
+   "qa_end_char": null,
+   "anchor_text": "Operator : Thank you. We will now begin the question and answer session. (Operator Instructions) Our",
+   "review_status": "unreviewed",
+   "notes": "Operator: \"We will now begin the question and answer session\" at ~21% — near the extractor's lower position bound."
+  },
+  {
+   "id": "glopardo-VLO-2021Q1",
+   "qa_start_char": 14492,
+   "qa_end_char": null,
+   "anchor_text": "Operator : Thank you. We will now be conducting a question-and-answer session. [Operator Instruction",
+   "review_status": "unreviewed",
+   "notes": "Operator: \"We will now be conducting a question-and-answer session\"."
+  },
+  {
+   "id": "glopardo-MA-2018Q3",
+   "qa_start_char": 18936,
+   "qa_end_char": null,
+   "anchor_text": "Operator : Your first question comes from the line of Bob Napoli with William Blair. Your line is no",
+   "review_status": "unreviewed",
+   "notes": "Operator: \"Your first question comes from the line of Bob Napoli\"; IR's 'ready to begin' sentence precedes and closes prepared remarks per convention."
+  },
+  {
+   "id": "glopardo-RSG-2021Q4",
+   "qa_start_char": 10681,
+   "qa_end_char": null,
+   "anchor_text": "Operator : We will now begin the question-and-answer session. [Operator Instructions] Our first ques",
+   "review_status": "unreviewed",
+   "notes": "Operator: \"We will now begin the question-and-answer session\" at ~23%."
+  },
+  {
+   "id": "glopardo-SHW-2016Q1",
+   "qa_start_char": 17366,
+   "qa_end_char": null,
+   "anchor_text": "Operator : Thank you. Ladies and gentlemen, at this time, we will be conducting a question-and-answe",
+   "review_status": "unreviewed",
+   "notes": "Operator: \"we will be conducting a question-and-answer session\" at ~24%."
+  },
+  {
+   "id": "rogersurf-FOXA-2026Q2",
+   "qa_start_char": 10451,
+   "qa_end_char": null,
+   "anchor_text": "Operator:\n\n[Operator Instructions]\nWe have a question from Michael Morris of Guggenheim.\nMichael Mor",
+   "review_status": "unreviewed",
+   "notes": "Operator: \"[Operator Instructions] We have a question from Michael Morris\" — 'we have a question from' is outside the extractor's cue set."
+  },
+  {
+   "id": "rogersurf-AEE-2026Q1",
+   "qa_start_char": 25629,
+   "qa_end_char": null,
+   "anchor_text": "Operator:\nWe will now move to our question and answer session. If you have joined via the webinar, p",
+   "review_status": "unreviewed",
+   "notes": "Operator: \"We will now move to our question and answer session\" (webinar-style raise-hand instructions follow)."
+  },
+  {
+   "id": "rogersurf-ZBRA-2026Q1",
+   "qa_start_char": 15109,
+   "qa_end_char": null,
+   "anchor_text": "Operator:\nWe will now begin the question and answer session. If you are using a speakerphone, to wit",
+   "review_status": "unreviewed",
+   "notes": "Operator: \"We will now begin the question and answer session\" after IR's 'open the call to Q&A' handoff."
+  },
+  {
+   "id": "rogersurf-ADBE-2025Q1",
+   "qa_start_char": 31918,
+   "qa_end_char": 64846,
+   "anchor_text": "Questions & Answers:\n\nOperator\nThank you. [Operator instructions] The first question will come from ",
+   "review_status": "unreviewed",
+   "notes": "Explicit 'Questions & Answers:' section heading (Motley Fool format); gold_end excludes the trailing Duration/participants/footer block."
+  },
+  {
+   "id": "rogersurf-CVX-2024Q3",
+   "qa_start_char": 11253,
+   "qa_end_char": 47528,
+   "anchor_text": "Questions & Answers:\n\nOperator\nThank you. [Operator instructions] And our first question comes from ",
+   "review_status": "unreviewed",
+   "notes": "Explicit 'Questions & Answers:' heading; gold_end excludes trailing footer."
+  },
+  {
+   "id": "rogersurf-LLY-2024Q4",
+   "qa_start_char": 28143,
+   "qa_end_char": 64261,
+   "anchor_text": "Questions & Answers:\n\nOperator\nCertainly. [Operator instructions] Our first question today is coming",
+   "review_status": "unreviewed",
+   "notes": "Explicit 'Questions & Answers:' heading; gold_end excludes trailing footer."
+  }
+ ]
+}
