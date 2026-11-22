@@ -55,7 +55,9 @@ question-answering over the transcript corpus.
 - Direct-from-API ingestion: scripts/fetch_av_transcripts.py pulls
   transcripts from Alpha Vantage's EARNINGS_CALL_TRANSCRIPT endpoint
   (pre-segmented speaker turns) as a gap-filler for calls the datasets
-  lack — budget-limited and resumable against the ~25 req/day free tier,
+  lack — budget-limited and resumable against the ~25 req/day free tier
+  (a daily fetch workflow drains the queue at that pace; the weekly
+  refresh shares its cache and concurrency group),
   with the attempt cache persisted via the rolling release; runs in the
   weekly refresh when ALPHAVANTAGE_API_KEY is set, skips cleanly when not
 - The index is a weekly build artifact, not a committed file: the Monday

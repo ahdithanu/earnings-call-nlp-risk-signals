@@ -1,0 +1,105 @@
+name: Fetch transcripts (daily)
+
+# Drains the Alpha Vantage transcript queue at the free tier's daily pace.
+# The Monday refresh (refresh-signals.yml) already fetches + rebuilds the
+# retrieval index once a week, but at ~25 requests per run that covers the
+# S&P 500's current quarter in months, not weeks. Alpha Vantage's free-tier
+# limit is PER DAY, so running the same budget-limited, cache-resumable
+# fetch daily accumulates ~175 transcripts/week during earnings season.
+#
+# Shares the attempt cache (rolling `rag-index` release) and the
+# `refresh-signals` concurrency group with the weekly workflow, so the two
+# never upload release assets concurrently and never refetch each other's
+# work. Skips cleanly when ALPHAVANTAGE_API_KEY is not configured; a
+# mid-run rate-limit notice stops the fetch gracefully, keeping its gains.
+
+on:
+  schedule:
+    - cron: "37 9 * * *"   # daily, off the minute-0 rush; weekly run is Mon 06:00
+  workflow_dispatch: {}
+
+permissions:
+  contents: write   # upload release assets
+  issues: write     # file an issue when an unattended run fails
+
+concurrency:
+  group: refresh-signals
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    env:
+      # empty when the secret is not configured — steps key their `if:` off
+      # this (secrets can't be tested in `if` directly)
+      ALPHAVANTAGE_API_KEY: ${{ secrets.ALPHAVANTAGE_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        if: env.ALPHAVANTAGE_API_KEY != ''
+        run: pip install -r requirements.txt
+
+      - name: Seed the Alpha Vantage transcript cache from the rolling release
+        if: env.ALPHAVANTAGE_API_KEY != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p data/av_transcripts
+          gh release download rag-index --pattern av_transcripts.jsonl.gz \
+            --dir data/av_transcripts 2>/dev/null || echo "no cached transcripts yet"
+
+      - name: Fetch new transcripts from Alpha Vantage (budget-limited)
+        if: env.ALPHAVANTAGE_API_KEY != ''
+        run: python -m scripts.fetch_av_transcripts
+
+      - name: Rebuild the RAG retrieval index
+        if: env.ALPHAVANTAGE_API_KEY != ''
+        env:
+          HF_HUB_DISABLE_XET: "1"
+        run: python -m scripts.build_rag_index
+
+      - name: Publish the index to the rolling `rag-index` release
+        if: env.ALPHAVANTAGE_API_KEY != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view rag-index >/dev/null 2>&1 || gh release create rag-index \
+            --prerelease --title "Rolling RAG index" \
+            --notes "Weekly-refreshed retrieval index behind POST /ask. Fetch with: python -m scripts.fetch_rag_index"
+          gh release upload rag-index data/processed/rag_index/* --clobber
+          if [ -f data/av_transcripts/av_transcripts.jsonl.gz ]; then
+            gh release upload rag-index data/av_transcripts/av_transcripts.jsonl.gz --clobber
+          fi
+
+      - name: File an issue on failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = "Daily transcript fetch failed";
+            const open = await github.rest.issues.listForRepo({
+              owner: context.repo.owner, repo: context.repo.repo,
+              state: "open", labels: "automation",
+            });
+            const body = "The scheduled daily transcript fetch failed: " +
+              `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}` +
+              `/actions/runs/${context.runId}\n\nCheck the Alpha Vantage fetch ` +
+              "output and the rolling release's assets.";
+            const existing = open.data.find(i => i.title === title);
+            if (existing) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner, repo: context.repo.repo,
+                issue_number: existing.number, body,
+              });
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner, repo: context.repo.repo,
+                title, body, labels: ["automation"],
+              });
+            }
